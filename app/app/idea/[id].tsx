@@ -1,22 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
-import { useDeleteIdea, useIdeas, useUpdateIdea } from '@/hooks/useIdeas';
+import { StatusPill } from '@/components/StatusPill';
+import { useDeleteIdea, useIdea, useUpdateIdea } from '@/hooks/useIdeas';
 import { colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
 import { IdeaStatus } from '@/types/idea';
 
 export default function IdeaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { data: ideas } = useIdeas();
+  const { data: idea } = useIdea(id);
   const updateIdea = useUpdateIdea();
   const deleteIdea = useDeleteIdea();
 
-  const idea = ideas?.find((i) => i.ideaId === id);
   const [description, setDescription] = useState(idea?.description ?? '');
   const [isEditing, setIsEditing] = useState(false);
 
@@ -71,7 +72,10 @@ export default function IdeaDetailScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>{idea.title}</Text>
         <View style={[styles.statusBadge, { backgroundColor: statusObj.color + '22' }]}>
           <Text style={[styles.statusBadgeText, { color: statusObj.color }]}>
@@ -83,23 +87,12 @@ export default function IdeaDetailScreen() {
           <Text style={styles.sectionLabel}>Status</Text>
           <View style={styles.statusRow}>
             {statusConfig.map((s) => (
-              <Pressable
+              <StatusPill
                 key={s.value}
-                style={[
-                  styles.statusOption,
-                  idea.status === s.value && {
-                    borderColor: s.color,
-                    backgroundColor: s.color + '22',
-                  },
-                ]}
+                status={s}
+                isActive={idea.status === s.value}
                 onPress={() => handleStatusChange(s.value)}
-              >
-                <Text
-                  style={[styles.statusOptionText, idea.status === s.value && { color: s.color }]}
-                >
-                  {s.label}
-                </Text>
-              </Pressable>
+              />
             ))}
           </View>
         </View>
@@ -145,7 +138,7 @@ export default function IdeaDetailScreen() {
             })}
           </Text>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -222,19 +215,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  statusOption: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    backgroundColor: colors.bg.surface,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  statusOptionText: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 13,
-    color: colors.text.secondary,
   },
   description: {
     fontFamily: fontFamily.display.regular,

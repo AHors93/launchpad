@@ -6,6 +6,11 @@ import { Idea, IdeaStatus } from '@/types/idea';
 
 const STORAGE_KEY = 'launchpad_ideas';
 
+// Single query key — all derived queries share this cache
+const ideaKeys = {
+  all: ['ideas'] as const,
+};
+
 async function loadIdeas(): Promise<Idea[]> {
   const data = await AsyncStorage.getItem(STORAGE_KEY);
   if (data === null || data === '') return [];
@@ -16,34 +21,51 @@ async function saveIdeas(ideas: Idea[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
 }
 
+// ── Queries (all derive from the same cache via `select`) ──
+
 export function useIdeas(statusFilter?: IdeaStatus) {
   return useQuery({
-    queryKey: ['ideas', statusFilter],
-    queryFn: async () => {
-      const ideas = await loadIdeas();
-      if (statusFilter !== undefined) {
-        return ideas.filter((i) => i.status === statusFilter);
-      }
-      return ideas;
-    },
+    queryKey: ideaKeys.all,
+    queryFn: loadIdeas,
+    select:
+      statusFilter !== undefined
+        ? (ideas: Idea[]) => ideas.filter((i) => i.status === statusFilter)
+        : undefined,
   });
+}
+
+export function useIdea(ideaId: string | undefined) {
+  return useQuery({
+    queryKey: ideaKeys.all,
+    queryFn: loadIdeas,
+    select: (ideas: Idea[]) => ideas.find((i) => i.ideaId === ideaId),
+    enabled: ideaId !== undefined && ideaId !== '',
+  });
+}
+
+export interface IdeaStats {
+  total: number;
+  spark: number;
+  exploring: number;
+  building: number;
+  shipped: number;
 }
 
 export function useIdeaStats() {
   return useQuery({
-    queryKey: ['ideas', 'stats'],
-    queryFn: async () => {
-      const ideas = await loadIdeas();
-      return {
-        total: ideas.length,
-        spark: ideas.filter((i) => i.status === 'spark').length,
-        exploring: ideas.filter((i) => i.status === 'exploring').length,
-        building: ideas.filter((i) => i.status === 'building').length,
-        shipped: ideas.filter((i) => i.status === 'shipped').length,
-      };
-    },
+    queryKey: ideaKeys.all,
+    queryFn: loadIdeas,
+    select: (ideas: Idea[]): IdeaStats => ({
+      total: ideas.length,
+      spark: ideas.filter((i) => i.status === 'spark').length,
+      exploring: ideas.filter((i) => i.status === 'exploring').length,
+      building: ideas.filter((i) => i.status === 'building').length,
+      shipped: ideas.filter((i) => i.status === 'shipped').length,
+    }),
   });
 }
+
+// ── Mutations (optimistic updates + rollback) ──
 
 export function useCreateIdea() {
   const queryClient = useQueryClient();
@@ -65,8 +87,29 @@ export function useCreateIdea() {
       await saveIdeas(ideas);
       return newIdea;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['ideas'] });
+    onMutate: async ({ title, description }) => {
+      await queryClient.cancelQueries({ queryKey: ideaKeys.all });
+      const previous = queryClient.getQueryData<Idea[]>(ideaKeys.all);
+      const now = new Date().toISOString();
+      const optimistic: Idea = {
+        ideaId: `temp-${Date.now()}`,
+        title,
+        description,
+        status: 'spark',
+        tags: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+      queryClient.setQueryData<Idea[]>(ideaKeys.all, (old) => [optimistic, ...(old ?? [])]);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(ideaKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ideaKeys.all });
     },
   });
 }
@@ -89,8 +132,25 @@ export function useUpdateIdea() {
       await saveIdeas(ideas);
       return ideas[index];
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['ideas'] });
+    onMutate: async ({ ideaId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ideaKeys.all });
+      const previous = queryClient.getQueryData<Idea[]>(ideaKeys.all);
+      queryClient.setQueryData<Idea[]>(ideaKeys.all, (old) =>
+        (old ?? []).map((idea) =>
+          idea.ideaId === ideaId
+            ? { ...idea, ...updates, updatedAt: new Date().toISOString() }
+            : idea,
+        ),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(ideaKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ideaKeys.all });
     },
   });
 }
@@ -104,8 +164,21 @@ export function useDeleteIdea() {
       const filtered = ideas.filter((i) => i.ideaId !== ideaId);
       await saveIdeas(filtered);
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['ideas'] });
+    onMutate: async (ideaId) => {
+      await queryClient.cancelQueries({ queryKey: ideaKeys.all });
+      const previous = queryClient.getQueryData<Idea[]>(ideaKeys.all);
+      queryClient.setQueryData<Idea[]>(ideaKeys.all, (old) =>
+        (old ?? []).filter((idea) => idea.ideaId !== ideaId),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(ideaKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ideaKeys.all });
     },
   });
 }

@@ -7,24 +7,29 @@ import { forwardRef, useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { IDEA_PROMPTS } from '@/constants/ideas';
-import { useCreateIdea } from '@/hooks/useIdeas';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 
-export const AddIdeaSheet = forwardRef<BottomSheet>(function AddIdeaSheet(_props, ref) {
+interface AddIdeaSheetProps {
+  onSubmit: (title: string) => void;
+}
+
+export const AddIdeaSheet = forwardRef<BottomSheet, AddIdeaSheetProps>(function AddIdeaSheet(
+  { onSubmit },
+  ref,
+) {
   const [title, setTitle] = useState('');
-  const createIdea = useCreateIdea();
   const prompt = useMemo(() => IDEA_PROMPTS[Math.floor(Math.random() * IDEA_PROMPTS.length)], []);
   const snapPoints = useMemo(() => ['35%'], []);
 
   const handleSubmit = useCallback(() => {
     const trimmed = title.trim();
     if (trimmed === '') return;
-    createIdea.mutate({ title: trimmed });
+    onSubmit(trimmed);
     setTitle('');
     if (ref && 'current' in ref && ref.current) {
       ref.current.close();
     }
-  }, [title, createIdea, ref]);
+  }, [title, onSubmit, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -53,7 +58,6 @@ export const AddIdeaSheet = forwardRef<BottomSheet>(function AddIdeaSheet(_props
           onChangeText={setTitle}
           onSubmitEditing={handleSubmit}
           returnKeyType="done"
-          autoFocus
         />
         <Pressable
           style={[styles.submitButton, title.trim() === '' && styles.submitButtonDisabled]}

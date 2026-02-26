@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useIdeaStats } from '@/hooks/useIdeas';
+import { IdeaStats } from '@/hooks/useIdeas';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 
 function StatBox({ label, count, color }: { label: string; count: number; color: string }) {
@@ -12,20 +12,22 @@ function StatBox({ label, count, color }: { label: string; count: number; color:
   );
 }
 
-export function StatsRow() {
-  const { data: stats } = useIdeaStats();
+interface StatsRowProps {
+  stats: IdeaStats;
+}
 
-  if ((stats?.total ?? 0) === 0) return null;
+export function StatsRow({ stats }: StatsRowProps) {
+  if (stats.total === 0) return null;
 
   return (
     <View style={styles.statsRow}>
-      <StatBox label="Sparks" count={stats?.spark ?? 0} color={colors.status.spark} />
+      <StatBox label="Sparks" count={stats.spark} color={colors.status.spark} />
       <StatBox
         label="Active"
-        count={(stats?.exploring ?? 0) + (stats?.building ?? 0)}
+        count={stats.exploring + stats.building}
         color={colors.status.exploring}
       />
-      <StatBox label="Shipped" count={stats?.shipped ?? 0} color={colors.status.shipped} />
+      <StatBox label="Shipped" count={stats.shipped} color={colors.status.shipped} />
     </View>
   );
 }

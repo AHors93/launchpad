@@ -61,6 +61,7 @@ export const gradients = {
   encouragementBg: ['#1f1c12', '#1a1620'] as const,
   userBubble: ['#201a2e', '#191d2a'] as const,
   headerText: ['#f0efe8', '#fbbf24'] as const,
+  background: ['#111114', '#1a1520', '#1e1528', '#181a2a', '#141e24', '#111114'] as const,
 } as const;
 
 // ─────────────────────────────────────────────

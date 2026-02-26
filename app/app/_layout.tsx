@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { QueryProvider } from '@/providers/QueryProvider';
 import { colors } from '@/theme/tokens';
@@ -50,20 +51,22 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryProvider>
-        <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.bg.primary },
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="idea/[id]" />
-          </Stack>
-        </View>
-      </QueryProvider>
+      <KeyboardProvider>
+        <QueryProvider>
+          <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.bg.primary },
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="idea/[id]" />
+            </Stack>
+          </View>
+        </QueryProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

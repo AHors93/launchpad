@@ -8,11 +8,19 @@ import { GradientBackground } from '@/components/GradientBackground';
 import { AddIdeaSheet } from '@/components/ideas/AddIdeaSheet';
 import { IdeaCard } from '@/components/ideas/IdeaCard';
 import { StatsRow } from '@/components/ideas/StatsRow';
-import { useIdeas } from '@/hooks/useIdeas';
+import {
+  useCreateIdea,
+  useDeleteIdea,
+  useIdeas,
+  useIdeaStats,
+  useUpdateIdea,
+} from '@/hooks/useIdeas';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
-import { Idea } from '@/types/idea';
+import { Idea, IdeaStatus } from '@/types/idea';
 
-function ListHeader() {
+const EMPTY_STATS = { total: 0, spark: 0, exploring: 0, building: 0, shipped: 0 };
+
+function ListHeader({ stats }: { stats: typeof EMPTY_STATS }) {
   return (
     <View>
       <View style={styles.header}>
@@ -24,29 +32,61 @@ function ListHeader() {
       </View>
 
       <EncouragementBanner />
-      <StatsRow />
+      <StatsRow stats={stats} />
     </View>
   );
 }
 
 export default function IdeasScreen() {
   const { data: ideas, isLoading, refetch } = useIdeas();
+  const { data: stats } = useIdeaStats();
+  const createIdea = useCreateIdea();
+  const updateIdea = useUpdateIdea();
+  const deleteIdea = useDeleteIdea();
   const sheetRef = useRef<BottomSheet>(null);
 
   const handleOpenSheet = useCallback(() => {
     sheetRef.current?.snapToIndex(0);
   }, []);
 
-  const renderItem = useCallback(({ item }: { item: Idea }) => <IdeaCard idea={item} />, []);
+  const handleCreateIdea = useCallback(
+    (title: string) => {
+      createIdea.mutate({ title });
+    },
+    [createIdea],
+  );
+
+  const handleStatusChange = useCallback(
+    (ideaId: string, status: IdeaStatus) => {
+      updateIdea.mutate({ ideaId, updates: { status } });
+    },
+    [updateIdea],
+  );
+
+  const handleDeleteIdea = useCallback(
+    (ideaId: string) => {
+      deleteIdea.mutate(ideaId);
+    },
+    [deleteIdea],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: Idea }) => (
+      <IdeaCard idea={item} onStatusChange={handleStatusChange} onDelete={handleDeleteIdea} />
+    ),
+    [handleStatusChange, handleDeleteIdea],
+  );
 
   const keyExtractor = useCallback((item: Idea) => item.ideaId, []);
+
+  const resolvedStats = stats ?? EMPTY_STATS;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <GradientBackground />
       {ideas === undefined || ideas === null || ideas.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <ListHeader />
+          <ListHeader stats={resolvedStats} />
           {!isLoading && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>{'\u{1F4A1}'}</Text>
@@ -64,7 +104,7 @@ export default function IdeasScreen() {
           data={ideas}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          ListHeaderComponent={ListHeader}
+          ListHeaderComponent={<ListHeader stats={resolvedStats} />}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -81,7 +121,7 @@ export default function IdeasScreen() {
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      <AddIdeaSheet ref={sheetRef} />
+      <AddIdeaSheet ref={sheetRef} onSubmit={handleCreateIdea} />
     </SafeAreaView>
   );
 }
@@ -102,26 +142,28 @@ const styles = StyleSheet.create({
   },
   brandLabel: {
     fontFamily: fontFamily.mono.regular,
-    fontSize: 11,
+    fontSize: 20,
+    lineHeight: 28,
     color: colors.amber[500],
     textTransform: 'uppercase',
     letterSpacing: 3,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   tagline: {
     fontFamily: fontFamily.display.bold,
     fontSize: 30,
+    lineHeight: 38,
     color: colors.amber[500],
     textAlign: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 15,
+    fontSize: 20,
+    lineHeight: 30,
     color: colors.text.muted,
     textAlign: 'center',
-    lineHeight: 22,
     paddingHorizontal: spacing.lg,
   },
   list: {

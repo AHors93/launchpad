@@ -8,8 +8,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { StatusPill } from '@/components/StatusPill';
 import { ENCOURAGEMENTS } from '@/constants/ideas';
-import { useDeleteIdea, useUpdateIdea } from '@/hooks/useIdeas';
 import { animation, colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
 import { Idea, IdeaStatus } from '@/types/idea';
 
@@ -21,41 +21,14 @@ function getRandomItem<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function StatusPill({
-  status,
-  isActive,
-  onPress,
-}: {
-  status: (typeof statusConfig)[number];
-  isActive: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.statusPill,
-        {
-          borderColor: isActive ? status.color : colors.border.medium,
-          backgroundColor: isActive ? status.color + '22' : 'transparent',
-        },
-      ]}
-    >
-      <Text style={[styles.statusPillText, { color: isActive ? status.color : colors.text.muted }]}>
-        {status.label}
-      </Text>
-    </Pressable>
-  );
-}
-
 interface IdeaCardProps {
   idea: Idea;
+  onStatusChange: (ideaId: string, status: IdeaStatus) => void;
+  onDelete: (ideaId: string) => void;
 }
 
-export function IdeaCard({ idea }: IdeaCardProps) {
+export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const updateIdea = useUpdateIdea();
-  const deleteIdea = useDeleteIdea();
   const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
 
   const translateX = useSharedValue(0);
@@ -93,10 +66,6 @@ export function IdeaCard({ idea }: IdeaCardProps) {
     });
   };
 
-  const handleStatusChange = (newStatus: IdeaStatus) => {
-    updateIdea.mutate({ ideaId: idea.ideaId, updates: { status: newStatus } });
-  };
-
   const handleNudge = () => {
     const msg = getRandomItem(ENCOURAGEMENTS);
     Alert.alert('\u{1F525}', msg);
@@ -108,7 +77,7 @@ export function IdeaCard({ idea }: IdeaCardProps) {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => deleteIdea.mutate(idea.ideaId),
+        onPress: () => onDelete(idea.ideaId),
       },
     ]);
   };
@@ -158,7 +127,7 @@ export function IdeaCard({ idea }: IdeaCardProps) {
                   key={s.value}
                   status={s}
                   isActive={idea.status === s.value}
-                  onPress={() => handleStatusChange(s.value)}
+                  onPress={() => onStatusChange(idea.ideaId, s.value)}
                 />
               ))}
             </View>
@@ -251,16 +220,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
-  },
-  statusPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-  },
-  statusPillText: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
   },
   actionRow: {
     flexDirection: 'row',
