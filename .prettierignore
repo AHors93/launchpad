@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.expo/
+cdk.out/
+pnpm-lock.yaml
+*.png
+*.jpg
+*.svg

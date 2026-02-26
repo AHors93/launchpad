@@ -1,0 +1,40 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - 'infrastructure/**'
+      - 'lambdas/**'
+      - 'packages/shared/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "stage=prod" >> $GITHUB_OUTPUT
+          else
+            echo "stage=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: CDK Deploy
+        working-directory: infrastructure
+        run: pnpm cdk deploy --all --require-approval never -c env=${{ steps.env.outputs.stage }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-west-1
