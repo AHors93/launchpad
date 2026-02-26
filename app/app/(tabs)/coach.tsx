@@ -1,27 +1,31 @@
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, spacing, fonts } from '@/theme/tokens';
+import { GradientBackground } from '@/components/GradientBackground';
+import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 
 export default function CoachScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <GradientBackground />
       <View style={styles.header}>
         <Text style={styles.title}>Side Coach</Text>
         <Text style={styles.subtitle}>Your no-BS thinking partner</Text>
       </View>
 
       <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>💬</Text>
+        <Text style={styles.emptyIcon}>{'\u{1F4AC}'}</Text>
         <Text style={styles.emptyTitle}>Ready when you are</Text>
         <Text style={styles.emptyText}>
-          Start a conversation about an idea{'\n'}or a career move you&apos;re considering
+          {"Start a conversation about an idea\nor a career move you're considering"}
         </Text>
       </View>
 
-      <Pressable style={styles.startButton}>
-        <Text style={styles.startButtonText}>Start a conversation</Text>
-      </Pressable>
+      <View style={styles.buttonContainer}>
+        <Pressable style={styles.startButton} onPress={() => {}}>
+          <Text style={styles.startButtonText}>Start a conversation</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -32,18 +36,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.primary,
   },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   title: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.bold,
     fontSize: 28,
     color: colors.text.primary,
-    fontWeight: '700',
   },
   subtitle: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     color: colors.text.secondary,
     marginTop: spacing.xs,
@@ -55,33 +58,34 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.bold,
     fontSize: 18,
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   emptyText: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     color: colors.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
   },
+  buttonContainer: {
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: spacing['3xl'],
+  },
   startButton: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-    backgroundColor: colors.amber[500],
-    paddingVertical: spacing.md,
-    borderRadius: 12,
+    backgroundColor: colors.purple[400],
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     alignItems: 'center',
   },
   startButtonText: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.bold,
     fontSize: 16,
-    color: colors.text.inverse,
-    fontWeight: '600',
+    color: '#ffffff',
   },
 });

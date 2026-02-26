@@ -1,41 +1,88 @@
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { useCallback, useRef } from 'react';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, spacing, fonts } from '@/theme/tokens';
+import { EncouragementBanner } from '@/components/EncouragementBanner';
+import { GradientBackground } from '@/components/GradientBackground';
+import { AddIdeaSheet } from '@/components/ideas/AddIdeaSheet';
+import { IdeaCard } from '@/components/ideas/IdeaCard';
+import { StatsRow } from '@/components/ideas/StatsRow';
+import { useIdeas } from '@/hooks/useIdeas';
+import { colors, fontFamily, spacing } from '@/theme/tokens';
+import { Idea } from '@/types/idea';
 
-export default function IdeasScreen() {
+function ListHeader() {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View>
       <View style={styles.header}>
-        <Text style={styles.title}>Idea Vault</Text>
-        <Text style={styles.subtitle}>Your sparks, all in one place</Text>
+        <Text style={styles.brandLabel}>LaunchPad</Text>
+        <Text style={styles.tagline}>Stop thinking. Start making.</Text>
+        <Text style={styles.subtitle}>
+          Your ideas deserve more than a notes app. Your career deserves more than wondering.
+        </Text>
       </View>
 
-      <View style={styles.statsRow}>
-        <StatBox label="Sparks" count={0} color={colors.status.spark} />
-        <StatBox label="Active" count={0} color={colors.status.building} />
-        <StatBox label="Shipped" count={0} color={colors.status.shipped} />
-      </View>
-
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>💡</Text>
-        <Text style={styles.emptyTitle}>No ideas yet</Text>
-        <Text style={styles.emptyText}>Tap + to capture your first spark</Text>
-      </View>
-
-      <Pressable style={styles.fab}>
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
-    </SafeAreaView>
+      <EncouragementBanner />
+      <StatsRow />
+    </View>
   );
 }
 
-function StatBox({ label, count, color }: { label: string; count: number; color: string }) {
+export default function IdeasScreen() {
+  const { data: ideas, isLoading, refetch } = useIdeas();
+  const sheetRef = useRef<BottomSheet>(null);
+
+  const handleOpenSheet = useCallback(() => {
+    sheetRef.current?.snapToIndex(0);
+  }, []);
+
+  const renderItem = useCallback(({ item }: { item: Idea }) => <IdeaCard idea={item} />, []);
+
+  const keyExtractor = useCallback((item: Idea) => item.ideaId, []);
+
   return (
-    <View style={styles.statBox}>
-      <Text style={[styles.statCount, { color }]}>{count}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <GradientBackground />
+      {ideas === undefined || ideas === null || ideas.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <ListHeader />
+          {!isLoading && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>{'\u{1F4A1}'}</Text>
+              <Text style={styles.emptyTitle}>No ideas yet</Text>
+              <Text style={styles.emptyText}>
+                {
+                  "That's fine \u2014 everyone starts with zero.\nDrop your first one below, even if it's half-baked."
+                }
+              </Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <FlatList
+          data={ideas}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={() => void refetch()}
+              tintColor={colors.amber[500]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      <Pressable style={styles.fab} onPress={handleOpenSheet}>
+        <Text style={styles.fabText}>+</Text>
+      </Pressable>
+
+      <AddIdeaSheet ref={sheetRef} />
+    </SafeAreaView>
   );
 }
 
@@ -44,69 +91,65 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg.primary,
   },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+  emptyContainer: {
+    flex: 1,
   },
-  title: {
-    fontFamily: fonts.mono,
-    fontSize: 28,
-    color: colors.text.primary,
-    fontWeight: '700',
+  header: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  brandLabel: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 11,
+    color: colors.amber[500],
+    textTransform: 'uppercase',
+    letterSpacing: 3,
+    marginBottom: spacing.sm,
+  },
+  tagline: {
+    fontFamily: fontFamily.display.bold,
+    fontSize: 30,
+    color: colors.amber[500],
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: fonts.mono,
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: colors.bg.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  statCount: {
-    fontFamily: fonts.mono,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontFamily: fonts.mono,
-    fontSize: 12,
+    fontFamily: fontFamily.display.regular,
+    fontSize: 15,
     color: colors.text.muted,
-    marginTop: spacing.xs,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: spacing.lg,
+  },
+  list: {
+    paddingBottom: 100,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 100,
+    paddingHorizontal: spacing['3xl'],
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.bold,
     fontSize: 18,
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   emptyText: {
-    fontFamily: fonts.mono,
-    fontSize: 14,
+    fontFamily: fontFamily.display.regular,
+    fontSize: 16,
     color: colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 24,
   },
   fab: {
     position: 'absolute',

@@ -1,11 +1,16 @@
-import { StyleSheet, Text, View, TextInput } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, spacing, fonts, radius } from '@/theme/tokens';
+import { GradientBackground } from '@/components/GradientBackground';
+import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 
 export default function ExploreScreen() {
+  const [focused, setFocused] = useState(false);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <GradientBackground />
       <View style={styles.header}>
         <Text style={styles.title}>Explore</Text>
         <Text style={styles.subtitle}>Discover any career path</Text>
@@ -13,15 +18,23 @@ export default function ExploreScreen() {
 
       <View style={styles.searchContainer}>
         <TextInput
-          style={styles.searchInput}
+          style={[
+            styles.searchInput,
+            { borderColor: focused ? colors.amber[300] : colors.border.medium },
+          ]}
           placeholder="What are you curious about?"
           placeholderTextColor={colors.text.muted}
           returnKeyType="search"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
+        <Pressable style={styles.searchButton}>
+          <Text style={styles.searchButtonText}>Search</Text>
+        </Pressable>
       </View>
 
       <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>🧭</Text>
+        <Text style={styles.emptyIcon}>{'\u{1F9ED}'}</Text>
         <Text style={styles.emptyTitle}>Search anything</Text>
         <Text style={styles.emptyText}>
           {'"How do I become an electrician?"'}
@@ -41,36 +54,49 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.primary,
   },
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   title: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.bold,
     fontSize: 28,
     color: colors.text.primary,
-    fontWeight: '700',
   },
   subtitle: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     color: colors.text.secondary,
     marginTop: spacing.xs,
   },
   searchContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.lg,
+    flexDirection: 'row',
+    gap: spacing.md,
   },
   searchInput: {
-    fontFamily: fonts.mono,
-    fontSize: 16,
+    flex: 1,
+    fontFamily: fontFamily.display.regular,
+    fontSize: 14,
     color: colors.text.primary,
-    backgroundColor: colors.bg.surface,
+    backgroundColor: colors.bg.input,
     borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+  },
+  searchButton: {
+    backgroundColor: colors.green[400],
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.xl,
+    borderRadius: radius.lg,
+    justifyContent: 'center',
+  },
+  searchButtonText: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 14,
+    color: '#ffffff',
   },
   emptyState: {
     flex: 1,
@@ -80,16 +106,16 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 48,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.bold,
     fontSize: 18,
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   emptyText: {
-    fontFamily: fonts.mono,
+    fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     color: colors.text.secondary,
     textAlign: 'center',

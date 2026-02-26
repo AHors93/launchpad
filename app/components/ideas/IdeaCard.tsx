@@ -1,0 +1,299 @@
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+import { ENCOURAGEMENTS } from '@/constants/ideas';
+import { useDeleteIdea, useUpdateIdea } from '@/hooks/useIdeas';
+import { animation, colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
+import { Idea, IdeaStatus } from '@/types/idea';
+
+function formatDate(d: string): string {
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function getRandomItem<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function StatusPill({
+  status,
+  isActive,
+  onPress,
+}: {
+  status: (typeof statusConfig)[number];
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.statusPill,
+        {
+          borderColor: isActive ? status.color : colors.border.medium,
+          backgroundColor: isActive ? status.color + '22' : 'transparent',
+        },
+      ]}
+    >
+      <Text style={[styles.statusPillText, { color: isActive ? status.color : colors.text.muted }]}>
+        {status.label}
+      </Text>
+    </Pressable>
+  );
+}
+
+interface IdeaCardProps {
+  idea: Idea;
+}
+
+export function IdeaCard({ idea }: IdeaCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const updateIdea = useUpdateIdea();
+  const deleteIdea = useDeleteIdea();
+  const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
+
+  const translateX = useSharedValue(0);
+  const bgProgress = useSharedValue(0);
+  const chevronRotation = useSharedValue(0);
+
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    backgroundColor: interpolateColor(
+      bgProgress.value,
+      [0, 1],
+      [colors.bg.surface, colors.bg.surfacePressed],
+    ),
+  }));
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
+
+  const handlePressIn = () => {
+    translateX.value = withSpring(4, { damping: 15, stiffness: 300 });
+    bgProgress.value = withTiming(1, { duration: animation.fast });
+  };
+
+  const handlePressOut = () => {
+    translateX.value = withSpring(0, { damping: 15, stiffness: 300 });
+    bgProgress.value = withTiming(0, { duration: animation.fast });
+  };
+
+  const handlePress = () => {
+    setExpanded((prev) => !prev);
+    chevronRotation.value = withSpring(expanded ? 0 : 180, {
+      damping: 15,
+      stiffness: 200,
+    });
+  };
+
+  const handleStatusChange = (newStatus: IdeaStatus) => {
+    updateIdea.mutate({ ideaId: idea.ideaId, updates: { status: newStatus } });
+  };
+
+  const handleNudge = () => {
+    const msg = getRandomItem(ENCOURAGEMENTS);
+    Alert.alert('\u{1F525}', msg);
+  };
+
+  const handleDelete = () => {
+    Alert.alert('Delete idea', "Are you sure? This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteIdea.mutate(idea.ideaId),
+      },
+    ]);
+  };
+
+  return (
+    <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
+      <Animated.View
+        style={[
+          styles.card,
+          { borderLeftColor: statusObj.color, borderColor: statusObj.color + '33' },
+          cardAnimatedStyle,
+        ]}
+      >
+        {/* Header row */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerContent}>
+            <Text style={styles.title} numberOfLines={2}>
+              {idea.title}
+            </Text>
+            <View style={styles.metaRow}>
+              <View style={[styles.statusBadge, { backgroundColor: statusObj.color + '22' }]}>
+                <Text style={[styles.statusBadgeText, { color: statusObj.color }]}>
+                  {statusObj.label}
+                </Text>
+              </View>
+              <Text style={styles.dateText}>{formatDate(idea.createdAt)}</Text>
+            </View>
+          </View>
+
+          <Animated.View style={chevronStyle}>
+            <Text style={styles.chevron}>{'\u25BE'}</Text>
+          </Animated.View>
+        </View>
+
+        {/* Expanded content */}
+        {expanded && (
+          <View style={styles.expandedContent}>
+            {idea.description !== undefined &&
+            idea.description !== null &&
+            idea.description !== '' ? (
+              <Text style={styles.description}>{idea.description}</Text>
+            ) : null}
+
+            <View style={styles.statusRow}>
+              {statusConfig.map((s) => (
+                <StatusPill
+                  key={s.value}
+                  status={s}
+                  isActive={idea.status === s.value}
+                  onPress={() => handleStatusChange(s.value)}
+                />
+              ))}
+            </View>
+
+            <View style={styles.actionRow}>
+              <Pressable
+                onPress={handleNudge}
+                style={({ pressed }) => [styles.nudgeButton, pressed && styles.nudgeButtonPressed]}
+              >
+                <Text style={styles.nudgeButtonText}>{'\u{1F525}'} Nudge me</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleDelete}
+                style={({ pressed }) => [styles.removeButton, pressed && { opacity: 0.6 }]}
+              >
+                <Text style={styles.removeButtonText}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    marginHorizontal: spacing['2xl'],
+    marginBottom: spacing.xl,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerContent: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  title: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 16,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
+  statusBadgeText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+  },
+  dateText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.text.muted,
+  },
+  chevron: {
+    fontSize: 18,
+    color: '#666666',
+  },
+  expandedContent: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+  },
+  description: {
+    fontFamily: fontFamily.display.regular,
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.text.secondary,
+    marginBottom: spacing.xl,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  statusPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+  },
+  statusPillText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  nudgeButton: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.amber[300],
+    backgroundColor: colors.amber[100],
+  },
+  nudgeButtonPressed: {
+    backgroundColor: colors.amber[200],
+  },
+  nudgeButtonText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.amber[500],
+  },
+  removeButton: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.red[300],
+    backgroundColor: 'transparent',
+  },
+  removeButtonText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.red[400] + '66',
+  },
+});
