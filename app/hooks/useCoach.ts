@@ -8,7 +8,7 @@ import {
   isBackendConfigured,
   sendMessageApi,
 } from '@/services/api';
-import { sendCoachMessage } from '@/services/coach';
+import { streamCoachMessage } from '@/services/coach';
 import { ChatMessage, Conversation } from '@/types/coach';
 
 const STORAGE_KEY = 'launchpad_conversations';
@@ -116,7 +116,6 @@ export function useDeleteConversation() {
   return useMutation({
     mutationFn: async (conversationId: string) => {
       if (useApi) {
-        // API delete not yet implemented — just remove locally
         return;
       }
       const conversations = await loadConversations();
@@ -161,7 +160,6 @@ export function useSendMessage() {
           content: result.assistantMessage.content,
           createdAt: result.assistantMessage.timestamp,
         };
-        // Update local cache with the messages
         queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
           (old ?? []).map((convo) =>
             convo.id === conversationId
@@ -185,7 +183,7 @@ export function useSendMessage() {
         return assistantMessage;
       }
 
-      // Local mode — call Claude directly
+      // Local mode — stream from Claude directly
       const conversations = await loadConversations();
       const convo = conversations.find((c) => c.id === conversationId);
       if (convo === undefined) throw new Error('Conversation not found');
@@ -206,16 +204,58 @@ export function useSendMessage() {
 
       await saveConversations(conversations);
 
+      // Create a placeholder assistant message in the cache for streaming
+      const assistantId = Crypto.randomUUID();
+      const streamingMessage: ChatMessage = {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date().toISOString(),
+      };
+
+      // Add empty assistant bubble so user sees it appear immediately
+      queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+        (old ?? []).map((c) =>
+          c.id === conversationId
+            ? {
+                ...c,
+                messages: [
+                  ...c.messages.filter((m) => !m.id.startsWith('temp-')),
+                  userMessage,
+                  streamingMessage,
+                ],
+                updatedAt: new Date().toISOString(),
+              }
+            : c,
+        ),
+      );
+
+      // Stream tokens and update the assistant message progressively
       const apiMessages = convo.messages.map((m) => ({
         role: m.role,
         content: m.content,
       }));
-      const responseText = await sendCoachMessage(apiMessages);
 
+      const fullText = await streamCoachMessage(apiMessages, (partialText) => {
+        queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+          (old ?? []).map((c) =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  messages: c.messages.map((m) =>
+                    m.id === assistantId ? { ...m, content: partialText } : m,
+                  ),
+                }
+              : c,
+          ),
+        );
+      });
+
+      // Final save with complete text
       const assistantMessage: ChatMessage = {
-        id: Crypto.randomUUID(),
+        id: assistantId,
         role: 'assistant',
-        content: responseText,
+        content: fullText,
         createdAt: new Date().toISOString(),
       };
       convo.messages.push(assistantMessage);

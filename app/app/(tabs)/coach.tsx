@@ -41,7 +41,11 @@ export default function CoachScreen() {
     return conversations[0];
   }, [conversations, activeId]);
 
-  const isThinking = sendMessage.isPending;
+  const isStreaming = sendMessage.isPending;
+  // Show thinking dots only before the streaming assistant bubble appears
+  const lastMessage = conversation?.messages[conversation.messages.length - 1];
+  const isWaitingForStream =
+    isStreaming && (lastMessage === undefined || lastMessage.role === 'user');
   const hasMessages = conversation !== undefined && conversation.messages.length > 0;
 
   const hasApiKey =
@@ -203,11 +207,11 @@ export default function CoachScreen() {
             contentContainerStyle={styles.messageList}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-            ListFooterComponent={isThinking ? <ThinkingIndicator /> : null}
+            ListFooterComponent={isWaitingForStream ? <ThinkingIndicator /> : null}
           />
         )}
 
-        {hasApiKey && <ChatInput onSend={handleSend} disabled={isThinking || isSavingIdea} />}
+        {hasApiKey && <ChatInput onSend={handleSend} disabled={isStreaming || isSavingIdea} />}
       </KeyboardAvoidingView>
 
       <ConversationHistorySheet

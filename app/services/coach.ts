@@ -32,11 +32,16 @@ interface AnthropicResponse {
   content: Array<{ type: string; text: string }>;
 }
 
-export async function sendCoachMessage(messages: ApiMessage[]): Promise<string> {
+function getApiKey(): string {
   const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
   if (apiKey === undefined || apiKey === '') {
     throw new Error('EXPO_PUBLIC_ANTHROPIC_API_KEY is not set');
   }
+  return apiKey;
+}
+
+export async function sendCoachMessage(messages: ApiMessage[]): Promise<string> {
+  const apiKey = getApiKey();
 
   const response = await fetch(ANTHROPIC_API_URL, {
     method: 'POST',
@@ -66,16 +71,91 @@ export async function sendCoachMessage(messages: ApiMessage[]): Promise<string> 
   return textBlock.text;
 }
 
+// ── Streaming ──────────────────────────────────────────────
+
+export async function streamCoachMessage(
+  messages: ApiMessage[],
+  onToken: (text: string) => void,
+): Promise<string> {
+  const apiKey = getApiKey();
+
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Coach API error ${response.status}: ${body}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (reader === undefined) {
+    throw new Error('No readable stream in response');
+  }
+
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+  let done = false;
+
+  while (!done) {
+    const chunk = await reader.read();
+    done = chunk.done;
+    if (done) break;
+    const value = chunk.value;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Process complete SSE lines
+    const lines = buffer.split('\n');
+    // Keep the last potentially incomplete line in the buffer
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') continue;
+
+      try {
+        const event = JSON.parse(data) as {
+          type: string;
+          delta?: { type: string; text: string };
+        };
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          const text = event.delta.text;
+          fullText += text;
+          onToken(fullText);
+        }
+      } catch {
+        // Skip malformed events
+      }
+    }
+  }
+
+  return fullText;
+}
+
+// ── Idea extraction ────────────────────────────────────────
+
 export interface ExtractedIdea {
   title: string;
   description: string;
 }
 
 export async function extractIdeaFromConversation(messages: ApiMessage[]): Promise<ExtractedIdea> {
-  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  if (apiKey === undefined || apiKey === '') {
-    throw new Error('EXPO_PUBLIC_ANTHROPIC_API_KEY is not set');
-  }
+  const apiKey = getApiKey();
 
   const conversationText = messages
     .map((m) => `${m.role === 'user' ? 'User' : 'Coach'}: ${m.content}`)
