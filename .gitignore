@@ -5,6 +5,10 @@ node_modules/
 dist/
 cdk.out/
 .expo/
+.turbo/
+
+# Lock files (pnpm-lock.yaml is the source of truth)
+package-lock.json
 
 # Environment
 .env
