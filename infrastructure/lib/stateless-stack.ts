@@ -7,6 +7,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as cdk from 'aws-cdk-lib/core';
@@ -53,7 +54,17 @@ export class StatelessStack extends cdk.Stack {
 
     const claudeEnv = { ANTHROPIC_API_KEY_PARAM: `/launchpad/${stage}/anthropic-api-key` };
 
-    const createApiHandler = (name: string, entry: string, extraEnv?: Record<string, string>) => {
+    const ssmApiKeyArn = cdk.Stack.of(this).formatArn({
+      service: 'ssm',
+      resource: 'parameter',
+      resourceName: `launchpad/${stage}/anthropic-api-key`,
+    });
+
+    const createApiHandler = (
+      name: string,
+      entry: string,
+      extraEnv: Record<string, string> = {},
+    ) => {
       const fn = new lambdaNode.NodejsFunction(this, name, {
         runtime: lambda.Runtime.NODEJS_20_X,
         handler: 'handler',
@@ -69,6 +80,15 @@ export class StatelessStack extends cdk.Stack {
       });
       table.grantReadWriteData(fn);
       eventBus.grantPutEventsTo(fn);
+      // Grant SSM read for API key if this handler uses Claude
+      if (extraEnv.ANTHROPIC_API_KEY_PARAM !== undefined) {
+        fn.addToRolePolicy(
+          new iam.PolicyStatement({
+            actions: ['ssm:GetParameter'],
+            resources: [ssmApiKeyArn],
+          }),
+        );
+      }
       return fn;
     };
 
@@ -91,6 +111,12 @@ export class StatelessStack extends cdk.Stack {
       });
       table.grantReadWriteData(fn);
       eventBus.grantPutEventsTo(fn);
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['ssm:GetParameter'],
+          resources: [ssmApiKeyArn],
+        }),
+      );
       return fn;
     };
 

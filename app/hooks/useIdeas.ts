@@ -2,9 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 
+import {
+  createIdeaApi,
+  deleteIdeaApi,
+  fetchIdeas,
+  isBackendConfigured,
+  updateIdeaApi,
+} from '@/services/api';
 import { Idea, IdeaStatus } from '@/types/idea';
 
 const STORAGE_KEY = 'launchpad_ideas';
+const useApi = isBackendConfigured();
 
 // Single query key — all derived queries share this cache
 const ideaKeys = {
@@ -12,6 +20,18 @@ const ideaKeys = {
 };
 
 async function loadIdeas(): Promise<Idea[]> {
+  if (useApi) {
+    const apiIdeas = await fetchIdeas();
+    return apiIdeas.map((i) => ({
+      ideaId: i.ideaId,
+      title: i.title,
+      description: i.description,
+      status: i.status as IdeaStatus,
+      tags: i.tags,
+      createdAt: i.createdAt,
+      updatedAt: i.updatedAt,
+    }));
+  }
   const data = await AsyncStorage.getItem(STORAGE_KEY);
   if (data === null || data === '') return [];
   return JSON.parse(data) as Idea[];
@@ -72,6 +92,18 @@ export function useCreateIdea() {
 
   return useMutation({
     mutationFn: async ({ title, description }: { title: string; description?: string }) => {
+      if (useApi) {
+        const apiIdea = await createIdeaApi({ title, description });
+        return {
+          ideaId: apiIdea.ideaId,
+          title: apiIdea.title,
+          description: apiIdea.description,
+          status: apiIdea.status as IdeaStatus,
+          tags: apiIdea.tags,
+          createdAt: apiIdea.createdAt,
+          updatedAt: apiIdea.updatedAt,
+        } satisfies Idea;
+      }
       const ideas = await loadIdeas();
       const now = new Date().toISOString();
       const newIdea: Idea = {
@@ -125,6 +157,10 @@ export function useUpdateIdea() {
       ideaId: string;
       updates: Partial<Pick<Idea, 'title' | 'description' | 'status' | 'tags'>>;
     }) => {
+      if (useApi) {
+        await updateIdeaApi(ideaId, updates);
+        return;
+      }
       const ideas = await loadIdeas();
       const index = ideas.findIndex((i) => i.ideaId === ideaId);
       if (index === -1) throw new Error('Idea not found');
@@ -160,6 +196,10 @@ export function useDeleteIdea() {
 
   return useMutation({
     mutationFn: async (ideaId: string) => {
+      if (useApi) {
+        await deleteIdeaApi(ideaId);
+        return;
+      }
       const ideas = await loadIdeas();
       const filtered = ideas.filter((i) => i.ideaId !== ideaId);
       await saveIdeas(filtered);

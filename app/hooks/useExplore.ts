@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 
+import { isBackendConfigured, searchExploreApi } from '@/services/api';
 import { searchCareerPath } from '@/services/explore';
 import { ExploreSearch } from '@/types/explore';
 
 const STORAGE_KEY = 'launchpad_explore_history';
+const useApi = isBackendConfigured();
 
 const exploreKeys = {
   all: ['explore'] as const,
@@ -33,7 +35,7 @@ export function useExploreSearch() {
 
   return useMutation({
     mutationFn: async (query: string) => {
-      const result = await searchCareerPath(query);
+      const result = useApi ? await searchExploreApi(query) : await searchCareerPath(query);
 
       const search: ExploreSearch = {
         id: Crypto.randomUUID(),
@@ -42,10 +44,9 @@ export function useExploreSearch() {
         createdAt: new Date().toISOString(),
       };
 
-      // Prepend to history
+      // Always save to local history (cache for offline access)
       const history = await loadSearchHistory();
       history.unshift(search);
-      // Keep last 20 searches
       if (history.length > 20) {
         history.length = 20;
       }

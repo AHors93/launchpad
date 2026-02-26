@@ -6,24 +6,85 @@ import {
 } from '@expo-google-fonts/eb-garamond';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
+import { configureAmplify } from '@/config/amplify';
+import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { colors } from '@/theme/tokens';
 
 export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: '(auth)',
 };
 
+configureAmplify();
 void SplashScreen.preventAutoHideAsync();
+
+function AuthGate() {
+  const { isLoading, isAuthenticated, needsConfirmation } = useAuth();
+
+  const cognitoConfigured =
+    process.env.EXPO_PUBLIC_COGNITO_USER_POOL_ID !== undefined &&
+    process.env.EXPO_PUBLIC_COGNITO_USER_POOL_ID !== '';
+
+  // Skip auth gate if Cognito isn't configured (local dev)
+  if (!cognitoConfigured) {
+    return (
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg.primary },
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="idea/[id]" />
+      </Stack>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.bg.primary,
+        }}
+      >
+        <ActivityIndicator color={colors.amber[500]} size="large" />
+      </View>
+    );
+  }
+
+  if (needsConfirmation) {
+    return <Redirect href="/(auth)/confirm" />;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/sign-in" />;
+  }
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.bg.primary },
+      }}
+    >
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="idea/[id]" />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -53,18 +114,12 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <QueryProvider>
-          <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.bg.primary },
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="idea/[id]" />
-            </Stack>
-          </View>
+          <AuthProvider>
+            <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
+              <StatusBar style="light" />
+              <AuthGate />
+            </View>
+          </AuthProvider>
         </QueryProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
