@@ -56,7 +56,7 @@ export default function TabLayout() {
           </View>
         );
       }}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, animation: 'fade', freezeOnBlur: true }}
     >
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="ideas" />

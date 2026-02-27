@@ -67,6 +67,9 @@ function AuthRouter() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="idea/[id]" />
+      <Stack.Screen name="blog/index" />
+      <Stack.Screen name="blog/[postId]" />
+      <Stack.Screen name="blog/compose" />
       <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
     </Stack>
   );
@@ -83,6 +86,9 @@ function LocalRouter() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="idea/[id]" />
+      <Stack.Screen name="blog/index" />
+      <Stack.Screen name="blog/[postId]" />
+      <Stack.Screen name="blog/compose" />
       <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
     </Stack>
   );

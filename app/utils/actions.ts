@@ -47,8 +47,8 @@ export function parseMessage(content: string): ParsedMessage {
             });
             break;
         }
-      } catch {
-        // Skip malformed action blocks
+      } catch (e) {
+        console.warn('Malformed action block:', json, e);
       }
       return '';
     })

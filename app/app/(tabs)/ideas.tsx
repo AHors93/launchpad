@@ -23,11 +23,22 @@ import { hapticMedium } from '@/utils/haptics';
 
 const EMPTY_STATS = { total: 0, spark: 0, exploring: 0, building: 0, shipped: 0 };
 
-function ListHeader({ stats, onSettings }: { stats: typeof EMPTY_STATS; onSettings: () => void }) {
+function ListHeader({
+  stats,
+  onSettings,
+  onBlog,
+}: {
+  stats: typeof EMPTY_STATS;
+  onSettings: () => void;
+  onBlog: () => void;
+}) {
   return (
     <View>
       <View style={styles.header}>
         <View style={styles.headerTop}>
+          <Pressable onPress={onBlog} style={styles.blogButton}>
+            <Ionicons name="newspaper-outline" size={22} color={colors.text.muted} />
+          </Pressable>
           <Text style={styles.brandLabel}>LaunchPad</Text>
           <Pressable onPress={onSettings} style={styles.settingsButton}>
             <Ionicons name="settings-outline" size={24} color={colors.text.muted} />
@@ -58,6 +69,10 @@ export default function IdeasScreen() {
     router.push('/settings');
   }, [router]);
 
+  const handleOpenBlog = useCallback(() => {
+    router.push('/blog');
+  }, [router]);
+
   const handleOpenSheet = useCallback(() => {
     hapticMedium();
     sheetRef.current?.snapToIndex(0);
@@ -84,11 +99,26 @@ export default function IdeasScreen() {
     [deleteIdea],
   );
 
+  const handleCoachIdea = useCallback(
+    (ideaId: string, ideaTitle: string, ideaDesc: string) => {
+      router.push({
+        pathname: '/(tabs)/coach',
+        params: { ideaId, ideaTitle, ideaDesc },
+      });
+    },
+    [router],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: Idea }) => (
-      <IdeaCard idea={item} onStatusChange={handleStatusChange} onDelete={handleDeleteIdea} />
+      <IdeaCard
+        idea={item}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDeleteIdea}
+        onCoach={handleCoachIdea}
+      />
     ),
-    [handleStatusChange, handleDeleteIdea],
+    [handleStatusChange, handleDeleteIdea, handleCoachIdea],
   );
 
   const keyExtractor = useCallback((item: Idea) => item.ideaId, []);
@@ -100,7 +130,11 @@ export default function IdeasScreen() {
       <GradientBackground />
       {ideas === undefined || ideas === null || ideas.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <ListHeader stats={resolvedStats} onSettings={handleOpenSettings} />
+          <ListHeader
+            stats={resolvedStats}
+            onSettings={handleOpenSettings}
+            onBlog={handleOpenBlog}
+          />
           {!isLoading && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>{'\u{1F4A1}'}</Text>
@@ -118,7 +152,13 @@ export default function IdeasScreen() {
           data={ideas}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          ListHeaderComponent={<ListHeader stats={resolvedStats} onSettings={handleOpenSettings} />}
+          ListHeaderComponent={
+            <ListHeader
+              stats={resolvedStats}
+              onSettings={handleOpenSettings}
+              onBlog={handleOpenBlog}
+            />
+          }
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -160,6 +200,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     marginBottom: spacing.md,
+  },
+  blogButton: {
+    position: 'absolute',
+    left: 0,
+    padding: spacing.xs,
   },
   settingsButton: {
     position: 'absolute',

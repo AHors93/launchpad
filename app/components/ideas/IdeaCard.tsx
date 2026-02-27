@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -22,10 +21,10 @@ interface IdeaCardProps {
   idea: Idea;
   onStatusChange: (ideaId: string, status: IdeaStatus) => void;
   onDelete: (ideaId: string) => void;
+  onCoach: (ideaId: string, ideaTitle: string, ideaDesc: string) => void;
 }
 
-export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
-  const router = useRouter();
+export function IdeaCard({ idea, onStatusChange, onDelete, onCoach }: IdeaCardProps) {
   const [expanded, setExpanded] = useState(false);
   const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
 
@@ -66,14 +65,7 @@ export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
   };
 
   const handleCoach = () => {
-    router.push({
-      pathname: '/(tabs)/coach',
-      params: {
-        ideaId: idea.ideaId,
-        ideaTitle: idea.title,
-        ideaDesc: idea.description ?? '',
-      },
-    });
+    onCoach(idea.ideaId, idea.title, idea.description ?? '');
   };
 
   const handleDelete = () => {

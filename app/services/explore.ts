@@ -1,6 +1,7 @@
 import { ExploreResult } from '@/types/explore';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION = '2023-06-01';
 
 const SYSTEM_PROMPT = `You are a career exploration assistant. When given a career, path, or business question, provide a comprehensive but concise overview.
 
@@ -33,7 +34,7 @@ export async function searchCareerPath(query: string): Promise<ExploreResult> {
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': ANTHROPIC_VERSION,
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',

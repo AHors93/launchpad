@@ -93,8 +93,11 @@ export default function SettingsScreen() {
   );
 
   const onSignOut = useCallback(async () => {
+    if (router.canDismiss()) {
+      router.dismiss();
+    }
     await handleSignOut();
-  }, [handleSignOut]);
+  }, [handleSignOut, router]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

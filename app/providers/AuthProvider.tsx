@@ -70,13 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const handleSignIn = useCallback(async (email: string, password: string) => {
-    // TODO(eas-build): Remove authFlowType override once on a dev build.
-    // SRP (default) requires native crypto not available in Expo Go.
-    // Just delete the `options` line below — signIn defaults to SRP.
     const result = await signIn({
       username: email,
       password,
-      options: { authFlowType: 'USER_PASSWORD_AUTH' },
+      // Expo Go lacks native crypto for SRP — use plain password flow in dev
+      ...(__DEV__ ? { options: { authFlowType: 'USER_PASSWORD_AUTH' as const } } : {}),
     });
     if (result.isSignedIn) {
       const cognitoUser = await getCurrentUser();

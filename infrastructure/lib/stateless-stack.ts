@@ -189,6 +189,51 @@ export class StatelessStack extends cdk.Stack {
       authorizer,
     });
 
+    const extractIdea = createApiHandler('ExtractIdea', 'api/coach/extract-idea.ts', claudeEnv);
+    api.addRoutes({
+      path: '/coach/extract-idea',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration: new HttpLambdaIntegration('ExtractIdeaInt', extractIdea),
+      authorizer,
+    });
+
+    // ─── Streaming Coach (Lambda Function URL) ───────────────
+    const streamMessage = new lambdaNode.NodejsFunction(this, 'StreamMessage', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler',
+      entry: path.join(__dirname, '..', '..', 'lambdas', 'api/coach/stream-message.ts'),
+      environment: {
+        ...sharedEnv,
+        ...claudeEnv,
+        USER_POOL_ID: userPool.userPoolId,
+        USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
+      },
+      timeout: cdk.Duration.seconds(120),
+      memorySize: 256,
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+        minify: true,
+        sourceMap: true,
+      },
+    });
+    table.grantReadWriteData(streamMessage);
+    streamMessage.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ssm:GetParameter'],
+        resources: [ssmApiKeyArn],
+      }),
+    );
+
+    const streamUrl = streamMessage.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+      cors: {
+        allowedOrigins: ['*'],
+        allowedHeaders: ['Authorization', 'Content-Type'],
+        allowedMethods: [lambda.HttpMethod.POST],
+      },
+    });
+
     // ─── Explore API ────────────────────────────────────────────
     const exploreSearch = createApiHandler('ExploreSearch', 'api/explore/search.ts', claudeEnv);
     const exploreSuggestions = createApiHandler(
@@ -312,6 +357,7 @@ export class StatelessStack extends cdk.Stack {
 
     // ─── Outputs ────────────────────────────────────────────────
     new cdk.CfnOutput(this, 'ApiUrl', { value: api.apiEndpoint });
+    new cdk.CfnOutput(this, 'StreamingUrl', { value: streamUrl.url });
     new cdk.CfnOutput(this, 'EventBusName', { value: eventBus.eventBusName });
   }
 }

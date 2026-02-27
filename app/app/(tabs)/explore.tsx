@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '@/components/GradientBackground';
 import { ExploreResultCard } from '@/components/explore/ExploreResultCard';
 import { useExploreSearch, useSearchHistory } from '@/hooks/useExplore';
+import { isBackendConfigured } from '@/services/api';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { ExploreSearch } from '@/types/explore';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
@@ -81,8 +82,9 @@ export default function ExploreScreen() {
   }, []);
 
   const hasApiKey =
-    process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== undefined &&
-    process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== '';
+    isBackendConfigured() ||
+    (process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== undefined &&
+      process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== '');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

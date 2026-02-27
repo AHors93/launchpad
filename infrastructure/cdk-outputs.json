@@ -10,6 +10,7 @@
   },
   "launchpad-dev-stateless": {
     "EventBusName": "launchpad-dev-events",
-    "ApiUrl": "https://97492yighh.execute-api.eu-west-1.amazonaws.com"
+    "ApiUrl": "https://97492yighh.execute-api.eu-west-1.amazonaws.com",
+    "StreamingUrl": "https://puk56m47dgotu77gpkzo6caiuq0woczb.lambda-url.eu-west-1.on.aws/"
   }
 }

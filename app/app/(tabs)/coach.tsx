@@ -1,7 +1,7 @@
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { FlatList, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,24 +10,25 @@ import { ChatBubble, ThinkingIndicator } from '@/components/coach/ChatBubble';
 import { ChatInput } from '@/components/coach/ChatInput';
 import { ConversationHistorySheet } from '@/components/coach/ConversationHistorySheet';
 import {
+  useAutoScroll,
   useConversations,
   useCreateConversation,
   useDeleteConversation,
+  useIdeaLinking,
+  useSaveIdeaFromChat,
   useSendMessage,
 } from '@/hooks/useCoach';
-import { useCreateIdea } from '@/hooks/useIdeas';
 import { useProfile } from '@/hooks/useProfile';
-import { extractIdeaFromConversation } from '@/services/coach';
+import { isBackendConfigured } from '@/services/api';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 import { ChatMessage } from '@/types/coach';
-import { hapticLight, hapticSuccess } from '@/utils/haptics';
+import { hapticLight } from '@/utils/haptics';
 
 export default function CoachScreen() {
   const { data: conversations } = useConversations();
   const createConversation = useCreateConversation();
   const deleteConversation = useDeleteConversation();
   const sendMessage = useSendMessage();
-  const createIdea = useCreateIdea();
   const { data: profile } = useProfile();
   const router = useRouter();
   const params = useLocalSearchParams<{ ideaId?: string; ideaTitle?: string; ideaDesc?: string }>();
@@ -36,8 +37,6 @@ export default function CoachScreen() {
   const historySheetRef = useRef<BottomSheet>(null);
 
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
-  const [isSavingIdea, setIsSavingIdea] = useState(false);
-  const [handledIdeaId, setHandledIdeaId] = useState<string | undefined>(undefined);
 
   // Resolve active conversation
   const conversation = useMemo(() => {
@@ -49,52 +48,29 @@ export default function CoachScreen() {
   }, [conversations, activeId]);
 
   const isStreaming = sendMessage.isPending;
-  // Show thinking dots only before the streaming assistant bubble appears
   const lastMessage = conversation?.messages[conversation.messages.length - 1];
   const isWaitingForStream =
     isStreaming && (lastMessage === undefined || lastMessage.role === 'user');
   const hasMessages = conversation !== undefined && conversation.messages.length > 0;
 
   const hasApiKey =
-    process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== undefined &&
-    process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== '';
+    isBackendConfigured() ||
+    (process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== undefined &&
+      process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== '');
 
-  // Handle idea-coach linking: when navigated with an ideaId param, auto-start a conversation
-  useEffect(() => {
-    if (
-      params.ideaId === undefined ||
-      params.ideaId === '' ||
-      params.ideaTitle === undefined ||
-      params.ideaTitle === ''
-    ) {
-      return;
-    }
-    // Only handle each ideaId once per navigation
-    if (handledIdeaId === params.ideaId) return;
-    setHandledIdeaId(params.ideaId);
+  // Extracted hooks
+  const { saveAsIdea, isSavingIdea } = useSaveIdeaFromChat(conversation);
 
-    const desc = params.ideaDesc !== undefined && params.ideaDesc !== '' ? params.ideaDesc : '';
-    const prompt = `I have an idea called "${params.ideaTitle}"${desc !== '' ? `. Here's what it's about: ${desc}` : ''}. Help me think through this — what should I focus on first?`;
+  useIdeaLinking(
+    params,
+    createConversation,
+    sendMessage,
+    setActiveId,
+    () => router.setParams({ ideaId: '', ideaTitle: '', ideaDesc: '' }),
+    profile,
+  );
 
-    createConversation.mutate(undefined, {
-      onSuccess: (newConvo) => {
-        setActiveId(newConvo.id);
-        sendMessage.mutate({ conversationId: newConvo.id, content: prompt, profile });
-        // Clear the params so re-renders don't re-trigger
-        router.setParams({ ideaId: '', ideaTitle: '', ideaDesc: '' });
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.ideaId, params.ideaTitle]);
-
-  // Auto-scroll when messages change
-  useEffect(() => {
-    if (hasMessages) {
-      setTimeout(() => {
-        listRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [conversation?.messages.length, hasMessages]);
+  useAutoScroll(listRef, conversation?.messages.length);
 
   const handleSend = useCallback(
     (content: string) => {
@@ -140,32 +116,6 @@ export default function CoachScreen() {
     [deleteConversation, activeId],
   );
 
-  const handleSaveAsIdea = useCallback(async () => {
-    if (conversation === undefined || conversation.messages.length === 0) return;
-
-    setIsSavingIdea(true);
-    try {
-      const apiMessages = conversation.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-      const extracted = await extractIdeaFromConversation(apiMessages);
-      createIdea.mutate(
-        { title: extracted.title, description: extracted.description },
-        {
-          onSuccess: () => {
-            hapticSuccess();
-            Alert.alert('Saved to vault', `"${extracted.title}" has been added to your ideas.`);
-          },
-        },
-      );
-    } catch {
-      Alert.alert('Error', 'Failed to extract idea. Try again.');
-    } finally {
-      setIsSavingIdea(false);
-    }
-  }, [conversation, createIdea]);
-
   const renderMessage = useCallback(
     ({ item }: { item: ChatMessage }) => (
       <ChatBubble role={item.role === 'assistant' ? 'coach' : 'user'} text={item.content} />
@@ -185,12 +135,12 @@ export default function CoachScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>Bob</Text>
-            <Text style={styles.subtitle}>Your no-BS thinking partner</Text>
+            <Text style={styles.subtitle}>Your thinking partner</Text>
           </View>
           <View style={styles.headerButtons}>
             {hasMessages && (
               <Pressable
-                onPress={() => void handleSaveAsIdea()}
+                onPress={() => void saveAsIdea()}
                 style={[styles.headerButton, styles.saveButton]}
                 disabled={isSavingIdea}
               >

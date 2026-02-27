@@ -1,9 +1,14 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
+const STREAMING_URL = process.env.EXPO_PUBLIC_STREAMING_URL ?? '';
 
 export function isBackendConfigured(): boolean {
   return API_BASE_URL !== '';
+}
+
+export function isStreamingConfigured(): boolean {
+  return STREAMING_URL !== '';
 }
 
 async function getAuthToken(): Promise<string | null> {
@@ -146,4 +151,110 @@ export async function searchExploreApi(query: string): Promise<ApiExploreResult>
     body: JSON.stringify({ query }),
   });
   return data.result;
+}
+
+// ── Coach Streaming API (Lambda Function URL) ───────────
+
+interface StreamEvent {
+  type: 'user_message' | 'token' | 'done' | 'error';
+  messageId?: string;
+  timestamp?: string;
+  text?: string;
+  message?: string;
+}
+
+export async function streamCoachMessageApi(
+  convoId: string,
+  content: string,
+  onToken: (text: string) => void,
+): Promise<{
+  userMessageId: string;
+  assistantMessageId: string;
+  fullText: string;
+  userTimestamp: string;
+  assistantTimestamp: string;
+}> {
+  const token = await getAuthToken();
+
+  const response = await fetch(STREAMING_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token !== null ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ convoId, content }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Stream API error ${response.status}: ${body}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (reader === undefined) {
+    throw new Error('No readable stream in response');
+  }
+
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+  let userMessageId = '';
+  let userTimestamp = '';
+  let assistantMessageId = '';
+  let assistantTimestamp = '';
+
+  let done = false;
+  while (!done) {
+    const chunk = await reader.read();
+    done = chunk.done;
+    if (done) break;
+
+    buffer += decoder.decode(chunk.value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      try {
+        const event = JSON.parse(data) as StreamEvent;
+        switch (event.type) {
+          case 'user_message':
+            userMessageId = event.messageId ?? '';
+            userTimestamp = event.timestamp ?? '';
+            break;
+          case 'token':
+            fullText += event.text ?? '';
+            onToken(fullText);
+            break;
+          case 'done':
+            assistantMessageId = event.messageId ?? '';
+            assistantTimestamp = event.timestamp ?? '';
+            break;
+          case 'error':
+            throw new Error(event.message ?? 'Streaming failed');
+        }
+      } catch (e) {
+        // Only treat JSON parse failures as malformed; propagate server error events
+        if (e instanceof SyntaxError) {
+          console.warn('Malformed stream event:', data, e);
+        } else {
+          throw e;
+        }
+      }
+    }
+  }
+
+  return { userMessageId, assistantMessageId, fullText, userTimestamp, assistantTimestamp };
+}
+
+// ── Coach Idea Extraction API ───────────────────────────
+
+export async function extractIdeaApi(
+  messages: Array<{ role: string; content: string }>,
+): Promise<{ title: string; description: string }> {
+  return apiClient<{ title: string; description: string }>('/coach/extract-idea', {
+    method: 'POST',
+    body: JSON.stringify({ messages }),
+  });
 }

@@ -1,6 +1,7 @@
 import { UserProfile } from '@/types/profile';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION = '2023-06-01';
 
 const BASE_SYSTEM_PROMPT = `You are Bob — the LaunchPad side coach. You're named after the creator's childhood cat, who was genuinely the best cat in the world. You carry that same energy: loyal, attentive, and always there when needed.
 
@@ -97,7 +98,7 @@ export async function sendCoachMessage(
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': ANTHROPIC_VERSION,
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
@@ -134,7 +135,7 @@ export async function streamCoachMessage(
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': ANTHROPIC_VERSION,
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
@@ -188,8 +189,8 @@ export async function streamCoachMessage(
           fullText += text;
           onToken(fullText);
         }
-      } catch {
-        // Skip malformed events
+      } catch (e) {
+        console.warn('Malformed SSE event:', data, e);
       }
     }
   }
@@ -216,7 +217,7 @@ export async function extractIdeaFromConversation(messages: ApiMessage[]): Promi
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': ANTHROPIC_VERSION,
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
@@ -240,8 +241,8 @@ export async function extractIdeaFromConversation(messages: ApiMessage[]): Promi
   try {
     const parsed = JSON.parse(textBlock.text) as ExtractedIdea;
     return parsed;
-  } catch {
-    // Fallback: use first user message as title
+  } catch (e) {
+    console.warn('Idea extraction parse failed:', e);
     const firstUserMsg = messages.find((m) => m.role === 'user');
     const fallbackTitle = firstUserMsg?.content ?? 'Untitled idea';
     return {

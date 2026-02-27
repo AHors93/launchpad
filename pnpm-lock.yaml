@@ -229,6 +229,9 @@ importers:
       '@launchpad/shared':
         specifier: workspace:*
         version: link:../packages/shared
+      aws-jwt-verify:
+        specifier: ^5.1.1
+        version: 5.1.1
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -2670,6 +2673,10 @@ packages:
     resolution: {integrity: sha512-7GKCq7p/33Jw+C+Ohwl4LnnKjvI/MzemeNZlTu/Kg8IwuZx5WEXEi32YLOlxbE1JOvleDslCWK5AIkBZ0omx/Q==}
     engines: {node: '>= 18.0.0'}
     hasBin: true
+
+  aws-jwt-verify@5.1.1:
+    resolution: {integrity: sha512-j6whGdGJmQ27agk4ijY8RPv6itb8JLb7SCJ86fEnneTcSBrpxuwL8kLq6y5WVH95aIknyAloEqAsaOLS1J8ITQ==}
+    engines: {node: '>=18.0.0'}
 
   babel-jest@29.7.0:
     resolution: {integrity: sha512-BrvGY3xZSwEcCzKvKsCi2GgHqDqsYkOP4/by5xCgIwGXQxIEh+8ew3gmrE1y7XRR6LHZIj6yLYnUi/mm2KXKBg==}
@@ -9735,6 +9742,8 @@ snapshots:
       constructs: 10.5.1
 
   aws-cdk@2.1107.0: {}
+
+  aws-jwt-verify@5.1.1: {}
 
   babel-jest@29.7.0(@babel/core@7.29.0):
     dependencies:

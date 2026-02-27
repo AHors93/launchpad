@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
+import { Alert } from 'react-native';
 
 import {
   createIdeaApi,
@@ -139,6 +140,7 @@ export function useCreateIdea() {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(ideaKeys.all, context.previous);
       }
+      Alert.alert('Error', 'Failed to save idea. Please try again.');
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ideaKeys.all });
@@ -184,6 +186,7 @@ export function useUpdateIdea() {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(ideaKeys.all, context.previous);
       }
+      Alert.alert('Error', 'Failed to update idea. Please try again.');
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ideaKeys.all });
@@ -216,6 +219,7 @@ export function useDeleteIdea() {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(ideaKeys.all, context.previous);
       }
+      Alert.alert('Error', 'Failed to delete idea. Please try again.');
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ideaKeys.all });

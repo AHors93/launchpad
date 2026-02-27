@@ -1,16 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, FlatList } from 'react-native';
+
+import { useCreateIdea } from './useIdeas';
 
 import {
   createConversationApi,
+  extractIdeaApi,
   fetchConversations,
   isBackendConfigured,
+  isStreamingConfigured,
   sendMessageApi,
+  streamCoachMessageApi,
 } from '@/services/api';
-import { streamCoachMessage } from '@/services/coach';
+import { extractIdeaFromConversation, streamCoachMessage } from '@/services/coach';
 import { ChatMessage, Conversation } from '@/types/coach';
 import { UserProfile } from '@/types/profile';
+import { hapticSuccess } from '@/utils/haptics';
 
 const STORAGE_KEY = 'launchpad_conversations';
 const useApi = isBackendConfigured();
@@ -43,14 +51,6 @@ export function useConversations() {
   return useQuery({
     queryKey: coachKeys.all,
     queryFn: loadConversations,
-  });
-}
-
-export function useActiveConversation() {
-  return useQuery({
-    queryKey: coachKeys.all,
-    queryFn: loadConversations,
-    select: (convos: Conversation[]) => (convos.length > 0 ? convos[0] : undefined),
   });
 }
 
@@ -135,6 +135,7 @@ export function useDeleteConversation() {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(coachKeys.all, context.previous);
       }
+      Alert.alert('Error', 'Failed to delete conversation. Please try again.');
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: coachKeys.all });
@@ -156,6 +157,75 @@ export function useSendMessage() {
       profile?: UserProfile;
     }) => {
       if (useApi) {
+        if (isStreamingConfigured()) {
+          // Backend streaming via Lambda Function URL
+          const assistantId = `stream-${Date.now()}`;
+          const streamingMessage: ChatMessage = {
+            id: assistantId,
+            role: 'assistant',
+            content: '',
+            createdAt: new Date().toISOString(),
+          };
+
+          queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+            (old ?? []).map((c) =>
+              c.id === conversationId
+                ? {
+                    ...c,
+                    messages: [
+                      ...c.messages.filter((m) => !m.id.startsWith('temp-')),
+                      streamingMessage,
+                    ],
+                    updatedAt: new Date().toISOString(),
+                  }
+                : c,
+            ),
+          );
+
+          const result = await streamCoachMessageApi(conversationId, content, (partialText) => {
+            queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+              (old ?? []).map((c) =>
+                c.id === conversationId
+                  ? {
+                      ...c,
+                      messages: c.messages.map((m) =>
+                        m.id === assistantId ? { ...m, content: partialText } : m,
+                      ),
+                    }
+                  : c,
+              ),
+            );
+          });
+
+          const assistantMessage: ChatMessage = {
+            id: result.assistantMessageId,
+            role: 'assistant',
+            content: result.fullText,
+            createdAt: result.assistantTimestamp,
+          };
+
+          queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+            (old ?? []).map((convo) =>
+              convo.id === conversationId
+                ? {
+                    ...convo,
+                    messages: convo.messages.map((m) => {
+                      if (m.id === assistantId) return assistantMessage;
+                      if (m.id.startsWith('temp-') && m.role === 'user') {
+                        return { ...m, id: result.userMessageId, createdAt: result.userTimestamp };
+                      }
+                      return m;
+                    }),
+                    updatedAt: new Date().toISOString(),
+                  }
+                : convo,
+            ),
+          );
+
+          return assistantMessage;
+        }
+
+        // Backend non-streaming fallback
         const result = await sendMessageApi(conversationId, content);
         const assistantMessage: ChatMessage = {
           id: result.assistantMessage.messageId,
@@ -300,9 +370,100 @@ export function useSendMessage() {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(coachKeys.all, context.previous);
       }
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: coachKeys.all });
+      // In API mode, the cache is authoritative for messages (server doesn't return them
+      // on list). Invalidating would refetch and wipe the in-memory messages.
+      if (!useApi) {
+        void queryClient.invalidateQueries({ queryKey: coachKeys.all });
+      }
     },
   });
+}
+
+// ── Extracted screen-level hooks ─────────────────────────────
+
+export function useSaveIdeaFromChat(conversation: Conversation | undefined) {
+  const createIdea = useCreateIdea();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const save = useCallback(async () => {
+    if (conversation === undefined || conversation.messages.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      const apiMessages = conversation.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      const extracted = useApi
+        ? await extractIdeaApi(apiMessages)
+        : await extractIdeaFromConversation(apiMessages);
+      createIdea.mutate(
+        { title: extracted.title, description: extracted.description },
+        {
+          onSuccess: () => {
+            hapticSuccess();
+            Alert.alert('Saved to vault', `"${extracted.title}" has been added to your ideas.`);
+          },
+        },
+      );
+    } catch {
+      Alert.alert('Error', 'Failed to extract idea. Try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [conversation, createIdea]);
+
+  return { saveAsIdea: save, isSavingIdea: isSaving };
+}
+
+export function useIdeaLinking(
+  params: { ideaId?: string; ideaTitle?: string; ideaDesc?: string },
+  createConversation: ReturnType<typeof useCreateConversation>,
+  sendMessage: ReturnType<typeof useSendMessage>,
+  setActiveId: (id: string) => void,
+  clearParams: () => void,
+  profile?: UserProfile,
+) {
+  const handledRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (
+      params.ideaId === undefined ||
+      params.ideaId === '' ||
+      params.ideaTitle === undefined ||
+      params.ideaTitle === ''
+    ) {
+      return;
+    }
+    if (handledRef.current === params.ideaId) return;
+    handledRef.current = params.ideaId;
+
+    const desc = params.ideaDesc !== undefined && params.ideaDesc !== '' ? params.ideaDesc : '';
+    const prompt = `I have an idea called "${params.ideaTitle}"${desc !== '' ? `. Here's what it's about: ${desc}` : ''}. Help me think through this — what should I focus on first?`;
+
+    createConversation.mutate(undefined, {
+      onSuccess: (newConvo) => {
+        setActiveId(newConvo.id);
+        sendMessage.mutate({ conversationId: newConvo.id, content: prompt, profile });
+        clearParams();
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.ideaId, params.ideaTitle]);
+}
+
+export function useAutoScroll(
+  listRef: React.RefObject<FlatList<ChatMessage> | null>,
+  messageCount: number | undefined,
+) {
+  useEffect(() => {
+    if (messageCount !== undefined && messageCount > 0) {
+      setTimeout(() => {
+        listRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messageCount, listRef]);
 }
