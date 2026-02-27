@@ -8,7 +8,7 @@ on:
 
 jobs:
   secret-scan:
-    name: Secret scanning
+    name: 🕵️ Secret scanning
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
           extra_args: --only-verified
 
   codeql:
-    name: CodeQL analysis
+    name: 🧬 CodeQL analysis
     runs-on: ubuntu-latest
     permissions:
       security-events: write
