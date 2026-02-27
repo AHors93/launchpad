@@ -10,6 +10,7 @@ import {
 } from '@/services/api';
 import { streamCoachMessage } from '@/services/coach';
 import { ChatMessage, Conversation } from '@/types/coach';
+import { UserProfile } from '@/types/profile';
 
 const STORAGE_KEY = 'launchpad_conversations';
 const useApi = isBackendConfigured();
@@ -148,9 +149,11 @@ export function useSendMessage() {
     mutationFn: async ({
       conversationId,
       content,
+      profile,
     }: {
       conversationId: string;
       content: string;
+      profile?: UserProfile;
     }) => {
       if (useApi) {
         const result = await sendMessageApi(conversationId, content);
@@ -236,20 +239,24 @@ export function useSendMessage() {
         content: m.content,
       }));
 
-      const fullText = await streamCoachMessage(apiMessages, (partialText) => {
-        queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
-          (old ?? []).map((c) =>
-            c.id === conversationId
-              ? {
-                  ...c,
-                  messages: c.messages.map((m) =>
-                    m.id === assistantId ? { ...m, content: partialText } : m,
-                  ),
-                }
-              : c,
-          ),
-        );
-      });
+      const fullText = await streamCoachMessage(
+        apiMessages,
+        (partialText) => {
+          queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+            (old ?? []).map((c) =>
+              c.id === conversationId
+                ? {
+                    ...c,
+                    messages: c.messages.map((m) =>
+                      m.id === assistantId ? { ...m, content: partialText } : m,
+                    ),
+                  }
+                : c,
+            ),
+          );
+        },
+        profile,
+      );
 
       // Final save with complete text
       const assistantMessage: ChatMessage = {

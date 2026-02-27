@@ -16,6 +16,7 @@ import {
   useSendMessage,
 } from '@/hooks/useCoach';
 import { useCreateIdea } from '@/hooks/useIdeas';
+import { useProfile } from '@/hooks/useProfile';
 import { extractIdeaFromConversation } from '@/services/coach';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 import { ChatMessage } from '@/types/coach';
@@ -27,6 +28,7 @@ export default function CoachScreen() {
   const deleteConversation = useDeleteConversation();
   const sendMessage = useSendMessage();
   const createIdea = useCreateIdea();
+  const { data: profile } = useProfile();
   const router = useRouter();
   const params = useLocalSearchParams<{ ideaId?: string; ideaTitle?: string; ideaDesc?: string }>();
 
@@ -77,7 +79,7 @@ export default function CoachScreen() {
     createConversation.mutate(undefined, {
       onSuccess: (newConvo) => {
         setActiveId(newConvo.id);
-        sendMessage.mutate({ conversationId: newConvo.id, content: prompt });
+        sendMessage.mutate({ conversationId: newConvo.id, content: prompt, profile });
         // Clear the params so re-renders don't re-trigger
         router.setParams({ ideaId: '', ideaTitle: '', ideaDesc: '' });
       },
@@ -100,14 +102,14 @@ export default function CoachScreen() {
         createConversation.mutate(undefined, {
           onSuccess: (newConvo) => {
             setActiveId(newConvo.id);
-            sendMessage.mutate({ conversationId: newConvo.id, content });
+            sendMessage.mutate({ conversationId: newConvo.id, content, profile });
           },
         });
         return;
       }
-      sendMessage.mutate({ conversationId: conversation.id, content });
+      sendMessage.mutate({ conversationId: conversation.id, content, profile });
     },
-    [conversation, createConversation, sendMessage],
+    [conversation, createConversation, sendMessage, profile],
   );
 
   const handleNewConversation = useCallback(() => {

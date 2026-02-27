@@ -1,6 +1,8 @@
+import { UserProfile } from '@/types/profile';
+
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
-const SYSTEM_PROMPT = `You are Bob — the LaunchPad side coach. You're named after the creator's childhood cat, who was genuinely the best cat in the world. You carry that same energy: loyal, attentive, and always there when needed.
+const BASE_SYSTEM_PROMPT = `You are Bob — the LaunchPad side coach. You're named after the creator's childhood cat, who was genuinely the best cat in the world. You carry that same energy: loyal, attentive, and always there when needed.
 
 You're a direct, no-BS thinking partner for aspiring builders and career pivoters.
 
@@ -17,6 +19,32 @@ Your style:
 - When a user describes a concrete idea worth pursuing, suggest they save it to their idea vault so they can track it.
 
 You're talking to someone who has ideas but hasn't started yet. Your job is to get them unstuck.`;
+
+function buildSystemPrompt(profile?: UserProfile): string {
+  if (profile === undefined) return BASE_SYSTEM_PROMPT;
+
+  const parts: string[] = [];
+
+  if (profile.name !== '') {
+    parts.push(`Their name is ${profile.name}.`);
+  }
+  if (profile.careerBackground !== '') {
+    parts.push(`Career background: ${profile.careerBackground}.`);
+  }
+  if (profile.interests.length > 0) {
+    parts.push(`Interested in: ${profile.interests.join(', ')}.`);
+  }
+  if (profile.goals !== '') {
+    parts.push(`Goals: ${profile.goals}.`);
+  }
+  if (profile.bio !== '') {
+    parts.push(`About them: ${profile.bio}.`);
+  }
+
+  if (parts.length === 0) return BASE_SYSTEM_PROMPT;
+
+  return `${BASE_SYSTEM_PROMPT}\n\nAbout the person you're talking to:\n${parts.join(' ')}`;
+}
 
 const EXTRACTION_PROMPT = `Based on the conversation below, extract a concise startup/project idea.
 
@@ -43,7 +71,10 @@ function getApiKey(): string {
   return apiKey;
 }
 
-export async function sendCoachMessage(messages: ApiMessage[]): Promise<string> {
+export async function sendCoachMessage(
+  messages: ApiMessage[],
+  profile?: UserProfile,
+): Promise<string> {
   const apiKey = getApiKey();
 
   const response = await fetch(ANTHROPIC_API_URL, {
@@ -56,7 +87,7 @@ export async function sendCoachMessage(messages: ApiMessage[]): Promise<string> 
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(profile),
       messages,
     }),
   });
@@ -79,6 +110,7 @@ export async function sendCoachMessage(messages: ApiMessage[]): Promise<string> 
 export async function streamCoachMessage(
   messages: ApiMessage[],
   onToken: (text: string) => void,
+  profile?: UserProfile,
 ): Promise<string> {
   const apiKey = getApiKey();
 
@@ -92,7 +124,7 @@ export async function streamCoachMessage(
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(profile),
       messages,
       stream: true,
     }),
