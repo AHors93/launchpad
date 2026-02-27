@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import BottomSheet from '@gorhom/bottom-sheet';
+import { useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,11 +22,16 @@ import { Idea, IdeaStatus } from '@/types/idea';
 
 const EMPTY_STATS = { total: 0, spark: 0, exploring: 0, building: 0, shipped: 0 };
 
-function ListHeader({ stats }: { stats: typeof EMPTY_STATS }) {
+function ListHeader({ stats, onSettings }: { stats: typeof EMPTY_STATS; onSettings: () => void }) {
   return (
     <View>
       <View style={styles.header}>
-        <Text style={styles.brandLabel}>LaunchPad</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.brandLabel}>LaunchPad</Text>
+          <Pressable onPress={onSettings} style={styles.settingsButton}>
+            <Ionicons name="settings-outline" size={20} color={colors.text.muted} />
+          </Pressable>
+        </View>
         <Text style={styles.tagline}>Stop thinking. Start making.</Text>
         <Text style={styles.subtitle}>
           Your ideas deserve more than a notes app. Your career deserves more than wondering.
@@ -38,12 +45,17 @@ function ListHeader({ stats }: { stats: typeof EMPTY_STATS }) {
 }
 
 export default function IdeasScreen() {
+  const router = useRouter();
   const { data: ideas, isLoading, refetch } = useIdeas();
   const { data: stats } = useIdeaStats();
   const createIdea = useCreateIdea();
   const updateIdea = useUpdateIdea();
   const deleteIdea = useDeleteIdea();
   const sheetRef = useRef<BottomSheet>(null);
+
+  const handleOpenSettings = useCallback(() => {
+    router.push('/settings');
+  }, [router]);
 
   const handleOpenSheet = useCallback(() => {
     sheetRef.current?.snapToIndex(0);
@@ -86,7 +98,7 @@ export default function IdeasScreen() {
       <GradientBackground />
       {ideas === undefined || ideas === null || ideas.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <ListHeader stats={resolvedStats} />
+          <ListHeader stats={resolvedStats} onSettings={handleOpenSettings} />
           {!isLoading && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>{'\u{1F4A1}'}</Text>
@@ -104,7 +116,7 @@ export default function IdeasScreen() {
           data={ideas}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          ListHeaderComponent={<ListHeader stats={resolvedStats} />}
+          ListHeaderComponent={<ListHeader stats={resolvedStats} onSettings={handleOpenSettings} />}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
@@ -140,6 +152,18 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     alignItems: 'center',
   },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  settingsButton: {
+    position: 'absolute',
+    right: 0,
+    padding: spacing.xs,
+  },
   brandLabel: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 20,
@@ -147,7 +171,6 @@ const styles = StyleSheet.create({
     color: colors.amber[500],
     textTransform: 'uppercase',
     letterSpacing: 3,
-    marginBottom: spacing.md,
   },
   tagline: {
     fontFamily: fontFamily.display.bold,

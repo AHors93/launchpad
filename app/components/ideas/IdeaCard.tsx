@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -9,16 +10,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { StatusPill } from '@/components/StatusPill';
-import { ENCOURAGEMENTS } from '@/constants/ideas';
 import { animation, colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
 import { Idea, IdeaStatus } from '@/types/idea';
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
-function getRandomItem<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 interface IdeaCardProps {
@@ -28,6 +24,7 @@ interface IdeaCardProps {
 }
 
 export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
 
@@ -66,9 +63,15 @@ export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
     });
   };
 
-  const handleNudge = () => {
-    const msg = getRandomItem(ENCOURAGEMENTS);
-    Alert.alert('\u{1F525}', msg);
+  const handleCoach = () => {
+    router.push({
+      pathname: '/(tabs)/coach',
+      params: {
+        ideaId: idea.ideaId,
+        ideaTitle: idea.title,
+        ideaDesc: idea.description ?? '',
+      },
+    });
   };
 
   const handleDelete = () => {
@@ -134,10 +137,10 @@ export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
 
             <View style={styles.actionRow}>
               <Pressable
-                onPress={handleNudge}
-                style={({ pressed }) => [styles.nudgeButton, pressed && styles.nudgeButtonPressed]}
+                onPress={handleCoach}
+                style={({ pressed }) => [styles.coachButton, pressed && styles.coachButtonPressed]}
               >
-                <Text style={styles.nudgeButtonText}>{'\u{1F525}'} Nudge me</Text>
+                <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}'} Coach this</Text>
               </Pressable>
 
               <Pressable
@@ -226,21 +229,21 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.sm,
   },
-  nudgeButton: {
+  coachButton: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.amber[300],
-    backgroundColor: colors.amber[100],
+    borderColor: colors.purple[300],
+    backgroundColor: colors.purple[100],
   },
-  nudgeButtonPressed: {
-    backgroundColor: colors.amber[200],
+  coachButtonPressed: {
+    backgroundColor: colors.purple[200],
   },
-  nudgeButtonText: {
+  coachButtonText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
-    color: colors.amber[500],
+    color: colors.purple[400],
   },
   removeButton: {
     paddingHorizontal: spacing.xl,

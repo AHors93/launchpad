@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { configureAmplify } from '@/config/amplify';
+import { useNotifications } from '@/hooks/useNotifications';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { colors } from '@/theme/tokens';
@@ -30,6 +31,7 @@ void SplashScreen.preventAutoHideAsync();
 
 function AuthGate() {
   const { isLoading, isAuthenticated, needsConfirmation } = useAuth();
+  useNotifications();
 
   const cognitoConfigured =
     process.env.EXPO_PUBLIC_COGNITO_USER_POOL_ID !== undefined &&
@@ -46,6 +48,7 @@ function AuthGate() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="idea/[id]" />
+        <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack>
     );
   }
@@ -82,6 +85,7 @@ function AuthGate() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="idea/[id]" />
+      <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

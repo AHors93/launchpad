@@ -138,6 +138,22 @@ export default function IdeaDetailScreen() {
             })}
           </Text>
         </View>
+
+        <Pressable
+          style={styles.coachButton}
+          onPress={() =>
+            router.push({
+              pathname: '/(tabs)/coach',
+              params: {
+                ideaId: idea.ideaId,
+                ideaTitle: idea.title,
+                ideaDesc: idea.description ?? '',
+              },
+            })
+          }
+        >
+          <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}  Coach this idea'}</Text>
+        </Pressable>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
@@ -251,5 +267,17 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     color: colors.text.secondary,
+  },
+  coachButton: {
+    backgroundColor: colors.purple[400],
+    paddingVertical: spacing.xl,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginTop: spacing['4xl'],
+  },
+  coachButtonText: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 15,
+    color: '#ffffff',
   },
 });

@@ -1,4 +1,5 @@
 import BottomSheet from '@gorhom/bottom-sheet';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -25,12 +26,15 @@ export default function CoachScreen() {
   const deleteConversation = useDeleteConversation();
   const sendMessage = useSendMessage();
   const createIdea = useCreateIdea();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ ideaId?: string; ideaTitle?: string; ideaDesc?: string }>();
 
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const historySheetRef = useRef<BottomSheet>(null);
 
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
   const [isSavingIdea, setIsSavingIdea] = useState(false);
+  const [handledIdeaId, setHandledIdeaId] = useState<string | undefined>(undefined);
 
   // Resolve active conversation
   const conversation = useMemo(() => {
@@ -51,6 +55,34 @@ export default function CoachScreen() {
   const hasApiKey =
     process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== undefined &&
     process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY !== '';
+
+  // Handle idea-coach linking: when navigated with an ideaId param, auto-start a conversation
+  useEffect(() => {
+    if (
+      params.ideaId === undefined ||
+      params.ideaId === '' ||
+      params.ideaTitle === undefined ||
+      params.ideaTitle === ''
+    ) {
+      return;
+    }
+    // Only handle each ideaId once per navigation
+    if (handledIdeaId === params.ideaId) return;
+    setHandledIdeaId(params.ideaId);
+
+    const desc = params.ideaDesc !== undefined && params.ideaDesc !== '' ? params.ideaDesc : '';
+    const prompt = `I have an idea called "${params.ideaTitle}"${desc !== '' ? `. Here's what it's about: ${desc}` : ''}. Help me think through this — what should I focus on first?`;
+
+    createConversation.mutate(undefined, {
+      onSuccess: (newConvo) => {
+        setActiveId(newConvo.id);
+        sendMessage.mutate({ conversationId: newConvo.id, content: prompt });
+        // Clear the params so re-renders don't re-trigger
+        router.setParams({ ideaId: '', ideaTitle: '', ideaDesc: '' });
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.ideaId, params.ideaTitle]);
 
   // Auto-scroll when messages change
   useEffect(() => {
