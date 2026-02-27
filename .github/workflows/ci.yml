@@ -35,6 +35,52 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Dependency audit (critical)
+        run: |
+          OUTPUT=$(pnpm audit --audit-level=critical 2>&1) || true
+          if echo "$OUTPUT" | grep -q "critical"; then
+            echo "::error::Critical vulnerabilities found in dependencies"
+            echo "$OUTPUT"
+            exit 1
+          fi
+          echo "No critical vulnerabilities found"
+
+      - name: Check for .env files committed
+        run: |
+          FILES=$(git ls-files '*.env' '.env.*' '**/.env' '**/.env.*' 2>/dev/null | grep -v '.env.example' | grep -v 'node_modules' || true)
+          if [ -n "$FILES" ]; then
+            echo "::error::Environment files found in repo:"
+            echo "$FILES"
+            exit 1
+          fi
+          echo "No .env files committed"
+
+      - name: Check for hardcoded API keys
+        run: |
+          PATTERNS="AKIA[0-9A-Z]{16}|sk-ant-[a-zA-Z0-9-]+|sk-[a-zA-Z0-9]{48}"
+          MATCHES=$(grep -rn --include='*.ts' --include='*.tsx' --include='*.js' --include='*.json' -E "$PATTERNS" . --exclude-dir=node_modules --exclude-dir=.expo --exclude-dir=dist --exclude-dir=cdk.out 2>/dev/null || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Possible hardcoded API keys found:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "No hardcoded API keys found"
+
   commitlint:
     name: Commit messages
     runs-on: ubuntu-latest
@@ -76,6 +122,40 @@ jobs:
       - name: CDK Diff
         working-directory: infrastructure
         run: npx cdk diff -c env=prod
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: eu-west-1
+
+  deploy:
+    name: Deploy infrastructure
+    runs-on: ubuntu-latest
+    needs: [quality, security]
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Determine stage
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "stage=prod" >> $GITHUB_OUTPUT
+          else
+            echo "stage=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: CDK Deploy
+        working-directory: infrastructure
+        run: npx cdk deploy --all --require-approval never -c env=${{ steps.env.outputs.stage }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

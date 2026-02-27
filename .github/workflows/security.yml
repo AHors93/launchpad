@@ -1,48 +1,12 @@
-name: Security
+name: Security (deep scan)
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
   schedule:
     # Run weekly on Monday at 09:00 UTC
     - cron: '0 9 * * 1'
-
-concurrency:
-  group: security-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_dispatch:
 
 jobs:
-  dependency-audit:
-    name: Dependency audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Audit dependencies
-        run: pnpm audit --audit-level=high
-        continue-on-error: true
-
-      - name: Check for critical vulnerabilities
-        run: |
-          OUTPUT=$(pnpm audit --audit-level=critical 2>&1) || true
-          if echo "$OUTPUT" | grep -q "critical"; then
-            echo "::error::Critical vulnerabilities found in dependencies"
-            echo "$OUTPUT"
-            exit 1
-          fi
-          echo "No critical vulnerabilities found"
-
   secret-scan:
     name: Secret scanning
     runs-on: ubuntu-latest
@@ -74,30 +38,3 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: '/language:javascript-typescript'
-
-  env-file-check:
-    name: No secrets in code
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check for .env files committed
-        run: |
-          FILES=$(git ls-files '*.env' '.env.*' '**/.env' '**/.env.*' 2>/dev/null | grep -v '.env.example' | grep -v 'node_modules' || true)
-          if [ -n "$FILES" ]; then
-            echo "::error::Environment files found in repo:"
-            echo "$FILES"
-            exit 1
-          fi
-          echo "No .env files committed"
-
-      - name: Check for hardcoded API keys
-        run: |
-          PATTERNS="AKIA[0-9A-Z]{16}|sk-ant-[a-zA-Z0-9-]+|sk-[a-zA-Z0-9]{48}"
-          MATCHES=$(grep -rn --include='*.ts' --include='*.tsx' --include='*.js' --include='*.json' -E "$PATTERNS" . --exclude-dir=node_modules --exclude-dir=.expo --exclude-dir=dist --exclude-dir=cdk.out 2>/dev/null || true)
-          if [ -n "$MATCHES" ]; then
-            echo "::error::Possible hardcoded API keys found:"
-            echo "$MATCHES"
-            exit 1
-          fi
-          echo "No hardcoded API keys found"
