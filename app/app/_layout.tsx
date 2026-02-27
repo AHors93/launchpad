@@ -5,16 +5,18 @@ import {
   EBGaramond_700Bold,
 } from '@expo-google-fonts/eb-garamond';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { Redirect, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { configureAmplify } from '@/config/amplify';
+import { ONBOARDING_KEY } from '@/constants/onboarding';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -33,9 +35,38 @@ function AuthGate() {
   const { isLoading, isAuthenticated, needsConfirmation } = useAuth();
   useNotifications();
 
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  useEffect(() => {
+    void AsyncStorage.getItem(ONBOARDING_KEY).then((value) => {
+      setOnboardingComplete(value === 'true');
+      setOnboardingChecked(true);
+    });
+  }, []);
+
   const cognitoConfigured =
     process.env.EXPO_PUBLIC_COGNITO_USER_POOL_ID !== undefined &&
     process.env.EXPO_PUBLIC_COGNITO_USER_POOL_ID !== '';
+
+  // Wait for onboarding check
+  if (!onboardingChecked) {
+    return null;
+  }
+
+  // Show onboarding first if not completed
+  if (!onboardingComplete) {
+    return (
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg.primary },
+        }}
+      >
+        <Stack.Screen name="onboarding" />
+      </Stack>
+    );
+  }
 
   // Skip auth gate if Cognito isn't configured (local dev)
   if (!cognitoConfigured) {
