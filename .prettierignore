@@ -2,6 +2,7 @@ node_modules/
 dist/
 .expo/
 cdk.out/
+expo-env.d.ts
 pnpm-lock.yaml
 *.png
 *.jpg
