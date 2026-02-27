@@ -9,6 +9,7 @@ const TAB_META: Record<string, { label: string; desc: string }> = {
   ideas: { label: '\u{1F4A1} Ideas', desc: 'Track & build' },
   coach: { label: '\u{1F5E3}\u{FE0F} Bob', desc: 'Your side coach' },
   explore: { label: '\u{1F50D} Explore', desc: 'Find paths' },
+  progress: { label: '\u{1F4CA} Progress', desc: 'Your journey' },
 };
 
 export default function TabLayout() {
@@ -61,6 +62,7 @@ export default function TabLayout() {
       <Tabs.Screen name="ideas" />
       <Tabs.Screen name="coach" />
       <Tabs.Screen name="explore" />
+      <Tabs.Screen name="progress" />
     </Tabs>
   );
 }

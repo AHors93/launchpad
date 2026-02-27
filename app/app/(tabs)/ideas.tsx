@@ -30,7 +30,7 @@ function ListHeader({ stats, onSettings }: { stats: typeof EMPTY_STATS; onSettin
         <View style={styles.headerTop}>
           <Text style={styles.brandLabel}>LaunchPad</Text>
           <Pressable onPress={onSettings} style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={20} color={colors.text.muted} />
+            <Ionicons name="settings-outline" size={24} color={colors.text.muted} />
           </Pressable>
         </View>
         <Text style={styles.tagline}>Stop thinking. Start making.</Text>
