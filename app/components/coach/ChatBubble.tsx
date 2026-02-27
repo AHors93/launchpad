@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -10,7 +10,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, gradients, spacing, typography } from '@/theme/tokens';
+import { colors, fontFamily, gradients, radius, spacing, typography } from '@/theme/tokens';
+import { BobAction } from '@/types/action';
+import { executeAction, getActionIcon, getActionLabel, parseMessage } from '@/utils/actions';
+import { hapticMedium } from '@/utils/haptics';
 
 interface ChatBubbleProps {
   role: 'user' | 'coach';
@@ -19,6 +22,11 @@ interface ChatBubbleProps {
 
 export function ChatBubble({ role, text }: ChatBubbleProps) {
   const isUser = role === 'user';
+
+  const parsed = useMemo(
+    () => (isUser ? { text, actions: [] } : parseMessage(text)),
+    [text, isUser],
+  );
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(8);
@@ -59,9 +67,32 @@ export function ChatBubble({ role, text }: ChatBubbleProps) {
     <Animated.View style={[styles.row, styles.rowCoach, enterStyle]}>
       <View style={[styles.bubble, bubbleRadius, styles.coachBubble]}>
         <Text style={styles.coachLabel}>Bob</Text>
-        <Text style={styles.messageText}>{text}</Text>
+        <Text style={styles.messageText}>{parsed.text}</Text>
+        {parsed.actions.length > 0 && (
+          <View style={styles.actionsContainer}>
+            {parsed.actions.map((action, i) => (
+              <ActionButton key={i} action={action} />
+            ))}
+          </View>
+        )}
       </View>
     </Animated.View>
+  );
+}
+
+function ActionButton({ action }: { action: BobAction }) {
+  const handlePress = () => {
+    hapticMedium();
+    void executeAction(action);
+  };
+
+  return (
+    <Pressable style={styles.actionButton} onPress={handlePress}>
+      <Text style={styles.actionIcon}>{getActionIcon(action)}</Text>
+      <Text style={styles.actionLabel} numberOfLines={1}>
+        {getActionLabel(action)}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -145,6 +176,30 @@ const styles = StyleSheet.create({
   },
   messageText: {
     ...typography.chatMessage,
+  },
+  actionsContainer: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.amber[100],
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.amber[300],
+  },
+  actionIcon: {
+    fontSize: 16,
+  },
+  actionLabel: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 12,
+    color: colors.amber[500],
+    flex: 1,
   },
   dotsRow: {
     flexDirection: 'row',

@@ -40,7 +40,8 @@
           "icon": "./assets/images/icon.png",
           "color": "#f59e0b"
         }
-      ]
+      ],
+      "expo-mail-composer"
     ],
     "experiments": {
       "typedRoutes": true
