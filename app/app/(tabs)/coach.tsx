@@ -179,7 +179,7 @@ export default function CoachScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>Side Coach</Text>
+            <Text style={styles.title}>Bob</Text>
             <Text style={styles.subtitle}>Your no-BS thinking partner</Text>
           </View>
           <View style={styles.headerButtons}>
@@ -212,7 +212,7 @@ export default function CoachScreen() {
             <Text style={styles.emptyIcon}>{'\u{1F511}'}</Text>
             <Text style={styles.emptyTitle}>API key needed</Text>
             <Text style={styles.emptyText}>
-              {'Set EXPO_PUBLIC_ANTHROPIC_API_KEY\nin your .env to start coaching.'}
+              {'Set EXPO_PUBLIC_ANTHROPIC_API_KEY\nin your .env to chat with Bob.'}
             </Text>
           </View>
         ) : !hasMessages ? (

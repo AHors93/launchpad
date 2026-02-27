@@ -1,8 +1,10 @@
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { useAuth } from '@/providers/AuthProvider';
 import { apiClient, isBackendConfigured } from '@/services/api';
 
 // Configure how notifications appear when the app is in the foreground
@@ -12,6 +14,8 @@ Notifications.setNotificationHandler({
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
 });
 
@@ -41,13 +45,21 @@ async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
+  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
+  const eas = extra?.eas as Record<string, unknown> | undefined;
+  const projectId = eas?.projectId as string | undefined;
+  if (projectId === undefined || projectId === '') {
+    return null;
+  }
+
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: 'launchpad',
+    projectId,
   });
   return tokenData.data;
 }
 
 export function useNotifications() {
+  const { isAuthenticated } = useAuth();
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -57,13 +69,6 @@ export function useNotifications() {
     void registerForPushNotifications().then((token) => {
       if (token !== null) {
         setPushToken(token);
-        // Register token with backend if configured
-        if (isBackendConfigured()) {
-          void apiClient('/notifications/register', {
-            method: 'POST',
-            body: JSON.stringify({ pushToken: token }),
-          });
-        }
       }
     });
 
@@ -86,6 +91,18 @@ export function useNotifications() {
       }
     };
   }, []);
+
+  // Register push token with backend only when authenticated (endpoint requires auth)
+  useEffect(() => {
+    if (pushToken !== null && isAuthenticated && isBackendConfigured()) {
+      void apiClient('/notifications/register', {
+        method: 'POST',
+        body: JSON.stringify({ pushToken }),
+      }).catch(() => {
+        // Ignore - will retry on next auth/login
+      });
+    }
+  }, [pushToken, isAuthenticated]);
 
   return { pushToken, notification };
 }

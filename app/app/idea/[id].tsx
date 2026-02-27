@@ -152,7 +152,7 @@ export default function IdeaDetailScreen() {
             })
           }
         >
-          <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}  Coach this idea'}</Text>
+          <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}  Ask Bob about this'}</Text>
         </Pressable>
       </KeyboardAwareScrollView>
     </SafeAreaView>

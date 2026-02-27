@@ -37,7 +37,7 @@ export function ChatBubble({ role, text }: ChatBubbleProps) {
   return (
     <View style={[styles.row, styles.rowCoach]}>
       <View style={[styles.bubble, bubbleRadius, styles.coachBubble]}>
-        <Text style={styles.coachLabel}>Coach</Text>
+        <Text style={styles.coachLabel}>Bob</Text>
         <Text style={styles.messageText}>{text}</Text>
       </View>
     </View>

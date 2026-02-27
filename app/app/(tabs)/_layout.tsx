@@ -6,7 +6,7 @@ import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 
 const TAB_META: Record<string, { label: string; desc: string }> = {
   ideas: { label: '\u{1F4A1} Ideas', desc: 'Track & build' },
-  coach: { label: '\u{1F5E3}\u{FE0F} Coach', desc: 'Talk it through' },
+  coach: { label: '\u{1F5E3}\u{FE0F} Bob', desc: 'Your side coach' },
   explore: { label: '\u{1F50D} Explore', desc: 'Find paths' },
 };
 
@@ -15,41 +15,44 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      tabBar={({ state, navigation }) => (
-        <View
-          style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}
-        >
-          <View style={styles.tabBar}>
-            {state.routes.map((route: { key: string; name: string }, index: number) => {
-              const meta = TAB_META[route.name];
-              if (meta === undefined) return null;
+      tabBar={({ state, navigation }) => {
+        if (state === undefined) return null;
+        return (
+          <View
+            style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}
+          >
+            <View style={styles.tabBar}>
+              {state.routes.map((route: { key: string; name: string }, index: number) => {
+                const meta = TAB_META[route.name];
+                if (meta === undefined) return null;
 
-              const isActive = state.index === index;
+                const isActive = state.index === index;
 
-              return (
-                <Pressable
-                  key={route.key}
-                  accessibilityRole="button"
-                  accessibilityState={isActive ? { selected: true } : undefined}
-                  onPress={() => {
-                    if (!isActive) {
-                      navigation.navigate(route.name);
-                    }
-                  }}
-                  style={[styles.tab, isActive && styles.tabActive]}
-                >
-                  <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                    {meta.label}
-                  </Text>
-                  <Text style={[styles.tabDesc, isActive && styles.tabDescActive]}>
-                    {meta.desc}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                return (
+                  <Pressable
+                    key={route.key}
+                    accessibilityRole="button"
+                    accessibilityState={isActive ? { selected: true } : undefined}
+                    onPress={() => {
+                      if (!isActive) {
+                        navigation.navigate(route.name);
+                      }
+                    }}
+                    style={[styles.tab, isActive && styles.tabActive]}
+                  >
+                    <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                      {meta.label}
+                    </Text>
+                    <Text style={[styles.tabDesc, isActive && styles.tabDescActive]}>
+                      {meta.desc}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
-      )}
+        );
+      }}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" options={{ href: null }} />

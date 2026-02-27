@@ -52,7 +52,7 @@ export class StatefulStack extends cdk.Stack {
 
     this.userPoolClient = this.userPool.addClient('MobileClient', {
       userPoolClientName: `launchpad-${stage}-mobile`,
-      authFlows: { userSrp: true },
+      authFlows: { userSrp: true, userPassword: true },
       preventUserExistenceErrors: true,
     });
 

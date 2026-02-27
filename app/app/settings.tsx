@@ -40,8 +40,7 @@ export default function SettingsScreen() {
 
   const onSignOut = useCallback(async () => {
     await handleSignOut();
-    router.replace('/(auth)/sign-in');
-  }, [handleSignOut, router]);
+  }, [handleSignOut]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -81,8 +80,8 @@ export default function SettingsScreen() {
           />
           <View style={styles.divider} />
           <SettingRow
-            label="Coach follow-ups"
-            desc="Action items from coaching conversations"
+            label="Bob follow-ups"
+            desc="Action items from conversations with Bob"
             value={prefs.coachFollowUps}
             onToggle={() => togglePref('coachFollowUps')}
           />
@@ -96,11 +95,9 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {isAuthenticated && (
-        <Pressable style={styles.signOutButton} onPress={() => void onSignOut()}>
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
-      )}
+      <Pressable style={styles.signOutButton} onPress={() => void onSignOut()}>
+        <Text style={styles.signOutText}>Sign out</Text>
+      </Pressable>
 
       <Text style={styles.version}>LaunchPad v1.0.0</Text>
     </SafeAreaView>

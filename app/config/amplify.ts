@@ -12,10 +12,6 @@ export function configureAmplify() {
       Cognito: {
         userPoolId,
         userPoolClientId: clientId,
-        signUpVerificationMethod: 'code',
-        loginWith: {
-          email: true,
-        },
       },
     },
   });

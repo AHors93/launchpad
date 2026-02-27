@@ -26,7 +26,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         style={styles.input}
         value={text}
         onChangeText={setText}
-        placeholder="Ask your coach anything..."
+        placeholder="Ask Bob anything..."
         placeholderTextColor={colors.text.muted}
         multiline
         maxLength={2000}

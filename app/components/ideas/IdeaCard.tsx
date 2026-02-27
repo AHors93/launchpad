@@ -140,7 +140,7 @@ export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
                 onPress={handleCoach}
                 style={({ pressed }) => [styles.coachButton, pressed && styles.coachButtonPressed]}
               >
-                <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}'} Coach this</Text>
+                <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}'} Ask Bob</Text>
               </Pressable>
 
               <Pressable

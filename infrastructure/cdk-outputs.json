@@ -1,0 +1,15 @@
+{
+  "launchpad-dev-stateful": {
+    "TableName": "launchpad-dev",
+    "UserPoolClientId": "7muhn145la0imtr55ch1vrmoid",
+    "ExportsOutputRefTableCD117FA1D18A8047": "launchpad-dev",
+    "UserPoolId": "eu-west-1_8Jl2wvHzM",
+    "ExportsOutputRefUserPoolMobileClient046093C2693C6546": "7muhn145la0imtr55ch1vrmoid",
+    "ExportsOutputRefUserPool6BA7E5F296FD7236": "eu-west-1_8Jl2wvHzM",
+    "ExportsOutputFnGetAttTableCD117FA1ArnE2C8C204": "arn:aws:dynamodb:eu-west-1:265911405775:table/launchpad-dev"
+  },
+  "launchpad-dev-stateless": {
+    "EventBusName": "launchpad-dev-events",
+    "ApiUrl": "https://97492yighh.execute-api.eu-west-1.amazonaws.com"
+  }
+}

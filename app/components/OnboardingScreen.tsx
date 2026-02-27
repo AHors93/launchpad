@@ -1,13 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StyleSheet, Text, View, ViewToken } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
-import { ONBOARDING_KEY } from '@/constants/onboarding';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -65,8 +62,11 @@ const SLIDES: OnboardingSlide[] = [
   },
 ];
 
-export default function OnboardingScreen() {
-  const router = useRouter();
+interface OnboardingScreenProps {
+  onComplete: () => void;
+}
+
+export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -82,22 +82,17 @@ export default function OnboardingScreen() {
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const handleComplete = useCallback(async () => {
-    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    router.replace('/(tabs)/ideas');
-  }, [router]);
-
   const handleNext = useCallback(() => {
     if (isLastSlide) {
-      void handleComplete();
+      onComplete();
     } else {
       listRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     }
-  }, [currentIndex, isLastSlide, handleComplete]);
+  }, [currentIndex, isLastSlide, onComplete]);
 
   const handleSkip = useCallback(() => {
-    void handleComplete();
-  }, [handleComplete]);
+    onComplete();
+  }, [onComplete]);
 
   const renderSlide = useCallback(
     ({ item, index }: { item: OnboardingSlide; index: number }) => (
