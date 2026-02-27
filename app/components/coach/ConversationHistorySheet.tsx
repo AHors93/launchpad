@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { Conversation } from '@/types/coach';
+import { hapticWarning } from '@/utils/haptics';
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -29,6 +30,7 @@ export const ConversationHistorySheet = forwardRef<BottomSheet, ConversationHist
 
     const handleDelete = useCallback(
       (id: string, title: string) => {
+        hapticWarning();
         Alert.alert('Delete conversation', `Delete "${title}"?`, [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -99,6 +101,12 @@ export const ConversationHistorySheet = forwardRef<BottomSheet, ConversationHist
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>{'\u{1F4AD}'}</Text>
+              <Text style={styles.emptyText}>No conversations yet</Text>
+            </View>
+          }
         />
       </BottomSheet>
     );
@@ -177,6 +185,19 @@ const styles = StyleSheet.create({
   conversationMeta: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 11,
+    color: colors.text.muted,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing['4xl'],
+  },
+  emptyIcon: {
+    fontSize: 36,
+    marginBottom: spacing.md,
+  },
+  emptyText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 14,
     color: colors.text.muted,
   },
 });

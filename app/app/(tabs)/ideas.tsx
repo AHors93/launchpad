@@ -19,6 +19,7 @@ import {
 } from '@/hooks/useIdeas';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 import { Idea, IdeaStatus } from '@/types/idea';
+import { hapticMedium } from '@/utils/haptics';
 
 const EMPTY_STATS = { total: 0, spark: 0, exploring: 0, building: 0, shipped: 0 };
 
@@ -58,6 +59,7 @@ export default function IdeasScreen() {
   }, [router]);
 
   const handleOpenSheet = useCallback(() => {
+    hapticMedium();
     sheetRef.current?.snapToIndex(0);
   }, []);
 

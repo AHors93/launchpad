@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '@/components/GradientBackground';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { hapticLight } from '@/utils/haptics';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function SignInScreen() {
 
   const onSubmit = useCallback(async () => {
     if (!canSubmit) return;
+    hapticLight();
     setIsLoading(true);
     try {
       await handleSignIn(email.trim().toLowerCase(), password);

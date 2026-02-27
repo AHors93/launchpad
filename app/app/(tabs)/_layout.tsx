@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { hapticLight } from '@/utils/haptics';
 
 const TAB_META: Record<string, { label: string; desc: string }> = {
   ideas: { label: '\u{1F4A1} Ideas', desc: 'Track & build' },
@@ -35,6 +36,7 @@ export default function TabLayout() {
                     accessibilityState={isActive ? { selected: true } : undefined}
                     onPress={() => {
                       if (!isActive) {
+                        hapticLight();
                         navigation.navigate(route.name);
                       }
                     }}

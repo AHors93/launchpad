@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { hapticLight } from '@/utils/haptics';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -16,6 +17,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if (trimmed === '' || disabled === true) return;
+    hapticLight();
     onSend(trimmed);
     setText('');
   }, [text, onSend, disabled]);

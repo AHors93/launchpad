@@ -4,10 +4,11 @@ import BottomSheet, {
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { forwardRef, useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text } from 'react-native';
 
 import { IDEA_PROMPTS } from '@/constants/ideas';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { hapticSuccess } from '@/utils/haptics';
 
 interface AddIdeaSheetProps {
   onSubmit: (title: string) => void;
@@ -24,6 +25,7 @@ export const AddIdeaSheet = forwardRef<BottomSheet, AddIdeaSheetProps>(function 
   const handleSubmit = useCallback(() => {
     const trimmed = title.trim();
     if (trimmed === '') return;
+    hapticSuccess();
     onSubmit(trimmed);
     setTitle('');
     if (ref && 'current' in ref && ref.current) {
@@ -47,6 +49,11 @@ export const AddIdeaSheet = forwardRef<BottomSheet, AddIdeaSheetProps>(function 
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      onAnimate={(_from, to) => {
+        if (to === -1) Keyboard.dismiss();
+      }}
     >
       <BottomSheetView style={styles.content}>
         <Text style={styles.prompt}>{prompt}</Text>

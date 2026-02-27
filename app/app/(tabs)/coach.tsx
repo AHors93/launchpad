@@ -1,7 +1,7 @@
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,6 +19,7 @@ import { useCreateIdea } from '@/hooks/useIdeas';
 import { extractIdeaFromConversation } from '@/services/coach';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
 import { ChatMessage } from '@/types/coach';
+import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 export default function CoachScreen() {
   const { data: conversations } = useConversations();
@@ -110,6 +111,7 @@ export default function CoachScreen() {
   );
 
   const handleNewConversation = useCallback(() => {
+    hapticLight();
     createConversation.mutate(undefined, {
       onSuccess: (newConvo) => {
         setActiveId(newConvo.id);
@@ -150,6 +152,7 @@ export default function CoachScreen() {
         { title: extracted.title, description: extracted.description },
         {
           onSuccess: () => {
+            hapticSuccess();
             Alert.alert('Saved to vault', `"${extracted.title}" has been added to your ideas.`);
           },
         },
@@ -208,15 +211,15 @@ export default function CoachScreen() {
         </View>
 
         {!hasApiKey ? (
-          <View style={styles.emptyState}>
+          <Pressable style={styles.emptyState} onPress={() => Keyboard.dismiss()}>
             <Text style={styles.emptyIcon}>{'\u{1F511}'}</Text>
             <Text style={styles.emptyTitle}>API key needed</Text>
             <Text style={styles.emptyText}>
               {'Set EXPO_PUBLIC_ANTHROPIC_API_KEY\nin your .env to chat with Bob.'}
             </Text>
-          </View>
+          </Pressable>
         ) : !hasMessages ? (
-          <View style={styles.emptyState}>
+          <Pressable style={styles.emptyState} onPress={() => Keyboard.dismiss()}>
             <Text style={styles.emptyIcon}>{'\u{1F4AC}'}</Text>
             <Text style={styles.emptyTitle}>Ready when you are</Text>
             <Text style={styles.emptyText}>
@@ -229,7 +232,7 @@ export default function CoachScreen() {
                 </Text>
               </Pressable>
             )}
-          </View>
+          </Pressable>
         ) : (
           <FlatList
             ref={listRef}
@@ -238,6 +241,8 @@ export default function CoachScreen() {
             keyExtractor={keyExtractor}
             contentContainerStyle={styles.messageList}
             showsVerticalScrollIndicator={false}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             ListFooterComponent={isWaitingForStream ? <ThinkingIndicator /> : null}
           />

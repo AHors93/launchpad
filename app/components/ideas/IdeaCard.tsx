@@ -12,6 +12,7 @@ import Animated, {
 import { StatusPill } from '@/components/StatusPill';
 import { animation, colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
 import { Idea, IdeaStatus } from '@/types/idea';
+import { hapticLight, hapticWarning } from '@/utils/haptics';
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -56,6 +57,7 @@ export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
   };
 
   const handlePress = () => {
+    hapticLight();
     setExpanded((prev) => !prev);
     chevronRotation.value = withSpring(expanded ? 0 : 180, {
       damping: 15,
@@ -75,6 +77,7 @@ export function IdeaCard({ idea, onStatusChange, onDelete }: IdeaCardProps) {
   };
 
   const handleDelete = () => {
+    hapticWarning();
     Alert.alert('Delete idea', "Are you sure? This can't be undone.", [
       { text: 'Cancel', style: 'cancel' },
       {

@@ -16,6 +16,7 @@ import { ExploreResultCard } from '@/components/explore/ExploreResultCard';
 import { useExploreSearch, useSearchHistory } from '@/hooks/useExplore';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { ExploreSearch } from '@/types/explore';
+import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 const QUICK_PROMPTS = [
   'How do I become a software engineer?',
@@ -49,6 +50,7 @@ export default function ExploreScreen() {
       Keyboard.dismiss();
       exploreSearch.mutate(q, {
         onSuccess: (result) => {
+          hapticSuccess();
           setActiveResult(result);
           setQuery('');
         },
@@ -62,6 +64,7 @@ export default function ExploreScreen() {
 
   const handleQuickPrompt = useCallback(
     (prompt: string) => {
+      hapticLight();
       setQuery(prompt);
       handleSearch(prompt);
     },

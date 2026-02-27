@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -84,8 +85,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
   const handleNext = useCallback(() => {
     if (isLastSlide) {
+      hapticSuccess();
       onComplete();
     } else {
+      hapticLight();
       listRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     }
   }, [currentIndex, isLastSlide, onComplete]);

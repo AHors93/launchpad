@@ -10,6 +10,7 @@ import { StatusPill } from '@/components/StatusPill';
 import { useDeleteIdea, useIdea, useUpdateIdea } from '@/hooks/useIdeas';
 import { colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
 import { IdeaStatus } from '@/types/idea';
+import { hapticLight, hapticSuccess, hapticWarning } from '@/utils/haptics';
 
 export default function IdeaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function IdeaDetailScreen() {
   const handleStatusChange = useCallback(
     (newStatus: IdeaStatus) => {
       if (id === undefined || id === '') return;
+      hapticLight();
       updateIdea.mutate({ ideaId: id, updates: { status: newStatus } });
     },
     [id, updateIdea],
@@ -31,11 +33,13 @@ export default function IdeaDetailScreen() {
 
   const handleSaveDescription = useCallback(() => {
     if (id === undefined || id === '') return;
+    hapticSuccess();
     updateIdea.mutate({ ideaId: id, updates: { description: description.trim() || undefined } });
     setIsEditing(false);
   }, [id, description, updateIdea]);
 
   const handleDelete = useCallback(() => {
+    hapticWarning();
     Alert.alert('Delete idea', "Are you sure? This can't be undone.", [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -53,7 +57,15 @@ export default function IdeaDetailScreen() {
   if (!idea) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.notFound}>Idea not found</Text>
+        <GradientBackground />
+        <View style={styles.notFoundContainer}>
+          <Text style={styles.notFoundIcon}>{'\u{1F50D}'}</Text>
+          <Text style={styles.notFoundTitle}>Idea not found</Text>
+          <Text style={styles.notFoundText}>It may have been deleted.</Text>
+          <Pressable onPress={() => router.back()} style={styles.notFoundButton}>
+            <Text style={styles.notFoundButtonText}>{'\u2190'} Back to ideas</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
@@ -198,12 +210,35 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
   },
-  notFound: {
+  notFoundContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing['3xl'],
+  },
+  notFoundIcon: {
+    fontSize: 48,
+    marginBottom: spacing.lg,
+  },
+  notFoundTitle: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 18,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  notFoundText: {
     fontFamily: fontFamily.mono.regular,
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text.muted,
-    textAlign: 'center',
-    marginTop: 100,
+    marginBottom: spacing['2xl'],
+  },
+  notFoundButton: {
+    paddingVertical: spacing.sm,
+  },
+  notFoundButtonText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 14,
+    color: colors.amber[500],
   },
   section: {
     marginTop: spacing['3xl'],
