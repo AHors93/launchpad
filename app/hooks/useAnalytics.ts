@@ -27,20 +27,20 @@ export function useAnalytics() {
 
   const track = useCallback(
     (event: AnalyticsEvent) => {
-      posthog.capture(event.name, event.properties);
+      posthog?.capture(event.name, event.properties);
     },
     [posthog],
   );
 
   const identify = useCallback(
     (userId: string, properties?: Record<string, string>) => {
-      posthog.identify(userId, properties);
+      posthog?.identify(userId, properties);
     },
     [posthog],
   );
 
   const reset = useCallback(() => {
-    posthog.reset();
+    posthog?.reset();
   }, [posthog]);
 
   return { track, identify, reset };
