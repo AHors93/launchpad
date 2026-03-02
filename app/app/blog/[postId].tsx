@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -120,6 +120,10 @@ export default function BlogPostScreen() {
         <Text style={styles.title}>{post.title}</Text>
         <Text style={styles.author}>by Adam</Text>
 
+        {post.imageUri !== undefined && (
+          <Image source={{ uri: post.imageUri }} style={styles.postImage} />
+        )}
+
         <Text style={styles.body}>{post.body}</Text>
 
         <View style={styles.divider} />
@@ -194,6 +198,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
     color: colors.amber[500],
+    marginBottom: spacing['2xl'],
+  },
+  postImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: radius.lg,
     marginBottom: spacing['2xl'],
   },
   body: {

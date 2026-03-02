@@ -46,11 +46,11 @@ export const ConversationHistorySheet = forwardRef<BottomSheet, ConversationHist
     const renderItem = useCallback(
       ({ item }: { item: Conversation }) => {
         const isActive = item.id === activeId;
-        const messageCount = item.messages.length;
+        const count = item.messages.length > 0 ? item.messages.length : (item.messageCount ?? 0);
         const preview =
-          messageCount > 0
-            ? item.messages[messageCount - 1].content.substring(0, 80)
-            : 'No messages yet';
+          item.messages.length > 0
+            ? item.messages[item.messages.length - 1].content.substring(0, 80)
+            : 'Tap to load conversation';
 
         return (
           <Pressable
@@ -71,7 +71,7 @@ export const ConversationHistorySheet = forwardRef<BottomSheet, ConversationHist
               {preview}
             </Text>
             <Text style={styles.conversationMeta}>
-              {messageCount} {messageCount === 1 ? 'message' : 'messages'}
+              {count} {count === 1 ? 'message' : 'messages'}
             </Text>
           </Pressable>
         );
@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
   },
   conversationTitle: {
     fontFamily: fontFamily.mono.bold,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.text.primary,
     flex: 1,
     marginRight: spacing.sm,
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   },
   conversationPreview: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
     color: colors.text.secondary,
     marginBottom: spacing.xs,
   },

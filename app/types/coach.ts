@@ -10,6 +10,8 @@ export interface Conversation {
   title: string;
   ideaId?: string;
   messages: ChatMessage[];
+  /** Server-side message count (available before messages are loaded in API mode) */
+  messageCount?: number;
   createdAt: string;
   updatedAt: string;
 }

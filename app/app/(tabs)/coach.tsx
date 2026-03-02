@@ -17,9 +17,11 @@ import {
   useCreateConversation,
   useDeleteConversation,
   useIdeaLinking,
+  useLoadMessages,
   useSaveIdeaFromChat,
   useSendMessage,
 } from '@/hooks/useCoach';
+import { useIdeas } from '@/hooks/useIdeas';
 import { useProfile } from '@/hooks/useProfile';
 import { isBackendConfigured } from '@/services/api';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
@@ -32,6 +34,7 @@ export default function CoachScreen() {
   const deleteConversation = useDeleteConversation();
   const sendMessage = useSendMessage();
   const { data: profile } = useProfile();
+  const { data: ideas } = useIdeas();
   const { track } = useAnalytics();
   const router = useRouter();
   const params = useLocalSearchParams<{ ideaId?: string; ideaTitle?: string; ideaDesc?: string }>();
@@ -55,6 +58,11 @@ export default function CoachScreen() {
   const isWaitingForStream =
     isStreaming && (lastMessage === undefined || lastMessage.role === 'user');
   const hasMessages = conversation !== undefined && conversation.messages.length > 0;
+  const linkedIdea = useMemo(() => {
+    if (conversation?.ideaId === undefined) return undefined;
+    return ideas?.find((i) => i.ideaId === conversation.ideaId);
+  }, [conversation?.ideaId, ideas]);
+  const hasLinkedIdea = linkedIdea !== undefined;
 
   const hasApiKey =
     isBackendConfigured() ||
@@ -74,6 +82,7 @@ export default function CoachScreen() {
     profile,
   );
 
+  useLoadMessages(conversation);
   useAutoScroll(listRef, conversation?.messages.length);
 
   const handleSend = useCallback(
@@ -189,7 +198,7 @@ export default function CoachScreen() {
                 <Text style={styles.subtitle}>Your thinking partner</Text>
               </View>
               <View style={styles.headerButtons}>
-                {hasMessages && (
+                {hasMessages && !hasLinkedIdea && (
                   <Pressable
                     onPress={() => void saveAsIdea()}
                     style={[styles.headerButton, styles.saveButton]}
@@ -212,6 +221,14 @@ export default function CoachScreen() {
                 )}
               </View>
             </View>
+            {linkedIdea !== undefined && (
+              <View style={styles.linkedIdeaBanner}>
+                <Text style={styles.linkedIdeaLabel}>Discussing</Text>
+                <Text style={styles.linkedIdeaTitle} numberOfLines={1}>
+                  {linkedIdea.title}
+                </Text>
+              </View>
+            )}
 
             {!hasApiKey ? (
               <Pressable style={styles.emptyState} onPress={() => Keyboard.dismiss()}>
@@ -290,7 +307,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.bold,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.text.primary,
+    color: colors.amber[500],
   },
   subtitle: {
     fontFamily: fontFamily.mono.regular,
@@ -360,6 +377,27 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'center',
     marginBottom: spacing['2xl'],
+  },
+  linkedIdeaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  linkedIdeaLabel: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 11,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  linkedIdeaTitle: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.amber[500],
+    flex: 1,
   },
   historyLink: {
     paddingVertical: spacing.sm,

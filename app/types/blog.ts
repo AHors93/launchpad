@@ -6,6 +6,7 @@ export interface BlogPost {
   body: string;
   excerpt: string;
   category: BlogPostCategory;
+  imageUri?: string;
   publishedAt: string;
   readTimeMinutes: number;
 }

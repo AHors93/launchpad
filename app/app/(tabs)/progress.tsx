@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.bold,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.text.primary,
+    color: colors.amber[500],
   },
   screenSubtitle: {
     fontFamily: fontFamily.mono.regular,

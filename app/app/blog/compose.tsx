@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
@@ -20,8 +22,23 @@ export default function ComposePostScreen() {
   const [body, setBody] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [category, setCategory] = useState<BlogPostCategory>('update');
+  const [imageUri, setImageUri] = useState<string | undefined>(undefined);
 
   const canPublish = title.trim() !== '' && body.trim() !== '';
+
+  const handlePickImage = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      hapticLight();
+      setImageUri(result.assets[0].uri);
+    }
+  }, []);
 
   const handlePublish = useCallback(() => {
     if (!canPublish) return;
@@ -32,6 +49,7 @@ export default function ComposePostScreen() {
         body: body.trim(),
         excerpt: excerpt.trim() !== '' ? excerpt.trim() : body.trim().substring(0, 150) + '...',
         category,
+        imageUri,
       },
       {
         onSuccess: () => {
@@ -39,7 +57,7 @@ export default function ComposePostScreen() {
         },
       },
     );
-  }, [canPublish, title, body, excerpt, category, createPost, router]);
+  }, [canPublish, title, body, excerpt, category, imageUri, createPost, router]);
 
   const handleBack = useCallback(() => {
     if (title.trim() !== '' || body.trim() !== '') {
@@ -72,11 +90,13 @@ export default function ComposePostScreen() {
         </Pressable>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
       >
         <Text style={styles.fieldLabel}>Category</Text>
         <View style={styles.categoryRow}>
@@ -92,6 +112,27 @@ export default function ComposePostScreen() {
             />
           ))}
         </View>
+
+        <Text style={styles.fieldLabel}>Cover image (optional)</Text>
+        {imageUri !== undefined ? (
+          <View style={styles.imagePreviewContainer}>
+            <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+            <Pressable
+              style={styles.imageRemoveButton}
+              onPress={() => {
+                hapticLight();
+                setImageUri(undefined);
+              }}
+            >
+              <Ionicons name="close-circle" size={28} color={colors.text.primary} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable style={styles.imagePickerButton} onPress={() => void handlePickImage()}>
+            <Ionicons name="image-outline" size={24} color={colors.text.muted} />
+            <Text style={styles.imagePickerText}>Add a photo</Text>
+          </Pressable>
+        )}
 
         <Text style={styles.fieldLabel}>Title</Text>
         <TextInput
@@ -124,7 +165,7 @@ export default function ComposePostScreen() {
           multiline
           textAlignVertical="top"
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -224,5 +265,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     minHeight: 200,
+  },
+  imagePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    backgroundColor: colors.bg.input,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
+    borderStyle: 'dashed',
+  },
+  imagePickerText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 14,
+    color: colors.text.muted,
+  },
+  imagePreviewContainer: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: radius.lg,
+  },
+  imageRemoveButton: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
   },
 });

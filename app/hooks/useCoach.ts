@@ -38,6 +38,7 @@ async function loadConversations(): Promise<Conversation[]> {
       title: c.title,
       ideaId: c.linkedIdeaId,
       messages: [],
+      messageCount: c.messageCount,
       createdAt: c.startedAt,
       updatedAt: c.lastMessageAt,
     }));
@@ -512,6 +513,29 @@ export function useIdeaLinking(
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.ideaId, params.ideaTitle]);
+}
+
+export function useLoadMessages(conversation: Conversation | undefined) {
+  const queryClient = useQueryClient();
+  const convoId = conversation?.id;
+  const hasMessages = (conversation?.messages.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (!useApi) return;
+    if (convoId === undefined || hasMessages) return;
+
+    void fetchMessagesApi(convoId).then((apiMessages) => {
+      const messages: ChatMessage[] = apiMessages.map((m) => ({
+        id: m.messageId,
+        role: m.role,
+        content: m.content,
+        createdAt: m.timestamp,
+      }));
+      queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+        (old ?? []).map((c) => (c.id === convoId ? { ...c, messages } : c)),
+      );
+    });
+  }, [convoId, hasMessages, queryClient]);
 }
 
 export function useAutoScroll(

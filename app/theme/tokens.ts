@@ -131,13 +131,13 @@ export const typography = {
   },
   input: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.text.primary,
   },
   chatMessage: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 14,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 26,
     color: colors.text.warm,
   },
   chatLabel: {

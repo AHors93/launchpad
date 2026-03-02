@@ -94,11 +94,13 @@ export function useCreatePost() {
       body,
       excerpt,
       category,
+      imageUri,
     }: {
       title: string;
       body: string;
       excerpt: string;
       category: BlogPostCategory;
+      imageUri?: string;
     }) => {
       const posts = await loadPosts();
       const now = new Date().toISOString();
@@ -108,6 +110,7 @@ export function useCreatePost() {
         body,
         excerpt,
         category,
+        imageUri,
         publishedAt: now,
         readTimeMinutes: estimateReadTime(body),
       };
@@ -115,7 +118,7 @@ export function useCreatePost() {
       await savePosts(posts);
       return newPost;
     },
-    onMutate: async ({ title, body, excerpt, category }) => {
+    onMutate: async ({ title, body, excerpt, category, imageUri }) => {
       await queryClient.cancelQueries({ queryKey: blogKeys.posts });
       const previous = queryClient.getQueryData<BlogPost[]>(blogKeys.posts);
       const now = new Date().toISOString();
@@ -125,6 +128,7 @@ export function useCreatePost() {
         body,
         excerpt,
         category,
+        imageUri,
         publishedAt: now,
         readTimeMinutes: estimateReadTime(body),
       };

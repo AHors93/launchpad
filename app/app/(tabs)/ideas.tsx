@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { AddIdeaSheet } from '@/components/ideas/AddIdeaSheet';
 import { IdeaCard } from '@/components/ideas/IdeaCard';
 import { StatsRow } from '@/components/ideas/StatsRow';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useConversations } from '@/hooks/useCoach';
 import {
   useCreateIdea,
   useDeleteIdea,
@@ -59,6 +60,7 @@ export default function IdeasScreen() {
   const updateIdea = useUpdateIdea();
   const deleteIdea = useDeleteIdea();
   const { track } = useAnalytics();
+  const { data: conversations } = useConversations();
   const sheetRef = useRef<BottomSheet>(null);
 
   const handleOpenSettings = useCallback(() => {
@@ -120,17 +122,23 @@ export default function IdeasScreen() {
     [router],
   );
 
+  const linkedIdeaIds = useMemo(() => {
+    if (conversations === undefined) return new Set<string>();
+    return new Set(conversations.filter((c) => c.ideaId !== undefined).map((c) => c.ideaId!));
+  }, [conversations]);
+
   const renderItem = useCallback(
     ({ item }: { item: Idea }) => (
       <IdeaCard
         idea={item}
+        hasLinkedConversation={linkedIdeaIds.has(item.ideaId)}
         onStatusChange={handleStatusChange}
         onTitleChange={handleTitleChange}
         onDelete={handleDeleteIdea}
         onCoach={handleCoachIdea}
       />
     ),
-    [handleStatusChange, handleTitleChange, handleDeleteIdea, handleCoachIdea],
+    [handleStatusChange, handleTitleChange, handleDeleteIdea, handleCoachIdea, linkedIdeaIds],
   );
 
   const keyExtractor = useCallback((item: Idea) => item.ideaId, []);

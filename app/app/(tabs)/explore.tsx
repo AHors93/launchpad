@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.bold,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.text.primary,
+    color: colors.amber[500],
   },
   subtitle: {
     fontFamily: fontFamily.mono.regular,
@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontFamily: fontFamily.display.regular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 24,
     color: colors.text.primary,
     backgroundColor: colors.bg.input,
     borderWidth: 1,
@@ -271,8 +271,8 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     fontFamily: fontFamily.mono.bold,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: '#ffffff',
   },
   scrollContent: {
@@ -317,8 +317,8 @@ const styles = StyleSheet.create({
   },
   quickPromptText: {
     fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.green[400],
   },
   historySection: {
@@ -337,14 +337,14 @@ const styles = StyleSheet.create({
   },
   historyQuery: {
     fontFamily: fontFamily.mono.regular,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.text.primary,
   },
   historyResult: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.text.muted,
     marginTop: 2,
   },

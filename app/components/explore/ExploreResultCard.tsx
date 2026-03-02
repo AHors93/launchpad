@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 26,
     color: colors.text.secondary,
   },
   stepsList: {
@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
   stepText: {
     flex: 1,
     fontFamily: fontFamily.display.regular,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
     color: colors.text.secondary,
   },
   prosConsRow: {
@@ -194,8 +194,8 @@ const styles = StyleSheet.create({
   bulletText: {
     flex: 1,
     fontFamily: fontFamily.display.regular,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 24,
     color: colors.text.secondary,
   },
 });

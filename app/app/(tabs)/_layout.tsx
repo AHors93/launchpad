@@ -5,11 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { hapticLight } from '@/utils/haptics';
 
-const TAB_META: Record<string, { label: string; desc: string }> = {
-  ideas: { label: '\u{1F4A1} Ideas', desc: 'Track & build' },
-  coach: { label: '\u{1F5E3}\u{FE0F} Bob', desc: 'Your side coach' },
-  explore: { label: '\u{1F50D} Explore', desc: 'Find paths' },
-  progress: { label: '\u{1F4CA} Progress', desc: 'Your journey' },
+const TAB_META: Record<string, { icon: string; label: string; desc: string }> = {
+  ideas: { icon: '\u{1F4A1}', label: 'Ideas', desc: 'Track & build' },
+  coach: { icon: '\u{1F5E3}\u{FE0F}', label: 'Bob', desc: 'Your side coach' },
+  explore: { icon: '\u{1F50D}', label: 'Explore', desc: 'Find paths' },
+  progress: { icon: '\u{1F4CA}', label: 'Progress', desc: 'Your journey' },
 };
 
 export default function TabLayout() {
@@ -43,6 +43,7 @@ export default function TabLayout() {
                     }}
                     style={[styles.tab, isActive && styles.tabActive]}
                   >
+                    <Text style={styles.tabIcon}>{meta.icon}</Text>
                     <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                       {meta.label}
                     </Text>
@@ -90,10 +91,17 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: colors.amber[100],
   },
+  tabIcon: {
+    fontSize: 20,
+    lineHeight: 24,
+    marginBottom: spacing.xs,
+  },
   tabLabel: {
     fontFamily: fontFamily.mono.regular,
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
     color: colors.text.muted,
+    textAlign: 'center',
   },
   tabLabelActive: {
     fontFamily: fontFamily.mono.bold,
@@ -102,9 +110,11 @@ const styles = StyleSheet.create({
   tabDesc: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 10,
+    lineHeight: 14,
     color: colors.text.muted,
     opacity: 0.6,
     marginTop: 2,
+    textAlign: 'center',
   },
   tabDescActive: {
     color: colors.amber[500],

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CategoryPill } from '@/components/blog/CategoryPill';
@@ -25,6 +25,10 @@ export function BlogPostCard({ post, commentCount, index, onPress }: BlogPostCar
           <CategoryPill category={post.category} isActive />
           <Text style={styles.readTime}>{post.readTimeMinutes} min read</Text>
         </View>
+
+        {post.imageUri !== undefined && (
+          <Image source={{ uri: post.imageUri }} style={styles.cardImage} />
+        )}
 
         <Text style={styles.title}>{post.title}</Text>
         <Text style={styles.excerpt} numberOfLines={3}>
@@ -62,6 +66,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 11,
     color: colors.text.muted,
+  },
+  cardImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
   },
   title: {
     fontFamily: fontFamily.display.bold,

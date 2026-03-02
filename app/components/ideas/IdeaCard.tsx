@@ -19,6 +19,7 @@ function formatDate(d: string): string {
 
 interface IdeaCardProps {
   idea: Idea;
+  hasLinkedConversation?: boolean;
   onStatusChange: (ideaId: string, status: IdeaStatus) => void;
   onTitleChange: (ideaId: string, title: string) => void;
   onDelete: (ideaId: string) => void;
@@ -27,6 +28,7 @@ interface IdeaCardProps {
 
 export function IdeaCard({
   idea,
+  hasLinkedConversation,
   onStatusChange,
   onTitleChange,
   onDelete,
@@ -179,7 +181,11 @@ export function IdeaCard({
                 onPress={handleCoach}
                 style={({ pressed }) => [styles.coachButton, pressed && styles.coachButtonPressed]}
               >
-                <Text style={styles.coachButtonText}>{'\u{1F5E3}\u{FE0F}'} Ask Bob</Text>
+                <Text style={styles.coachButtonText}>
+                  {hasLinkedConversation === true
+                    ? '\u{1F4AC} Continue with Bob'
+                    : '\u{1F5E3}\u{FE0F} Ask Bob'}
+                </Text>
               </Pressable>
 
               <Pressable
@@ -262,8 +268,8 @@ const styles = StyleSheet.create({
   },
   description: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
     color: colors.text.secondary,
     marginBottom: spacing.xl,
   },
