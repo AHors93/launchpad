@@ -1,3 +1,5 @@
+import { exploreSearchSchema } from '@launchpad/shared';
+
 import { getClaudeClient } from '../../shared/claude-client';
 import {
   withErrorHandling,
@@ -36,11 +38,7 @@ interface ExploreResult {
 
 export const handler = withErrorHandling(async (event) => {
   getUserId(event);
-  const { query } = parseBody<{ query: string }>(event);
-
-  if (!query || query.trim() === '') {
-    throw new ApiError(400, 'Query is required');
-  }
+  const { query } = exploreSearchSchema.parse(parseBody(event));
 
   const claude = await getClaudeClient();
   const response = await claude.messages.create({

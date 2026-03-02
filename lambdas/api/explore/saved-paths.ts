@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 
 import { QueryCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { savePathSchema } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
 import { emitEvent } from '../../shared/eventbridge-client';
@@ -22,9 +23,7 @@ export const handler = withErrorHandling(async (event) => {
   }
 
   if (method === 'POST') {
-    const { title, query, summary } = parseBody<{ title: string; query: string; summary: string }>(
-      event,
-    );
+    const { title, query, summary } = savePathSchema.parse(parseBody(event));
     const pathId = randomUUID();
     const now = new Date().toISOString();
 

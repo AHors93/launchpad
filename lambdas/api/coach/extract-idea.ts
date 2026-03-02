@@ -1,3 +1,5 @@
+import { extractIdeaSchema } from '@launchpad/shared';
+
 import { getClaudeClient } from '../../shared/claude-client';
 import {
   withErrorHandling,
@@ -15,10 +17,6 @@ Return ONLY a valid JSON object with exactly these fields:
 
 Do not include any other text, markdown, or code fences. Just the JSON object.`;
 
-interface ExtractInput {
-  messages: Array<{ role: string; content: string }>;
-}
-
 interface ExtractedIdea {
   title: string;
   description: string;
@@ -26,11 +24,7 @@ interface ExtractedIdea {
 
 export const handler = withErrorHandling(async (event) => {
   getUserId(event);
-  const { messages } = parseBody<ExtractInput>(event);
-
-  if (messages === undefined || messages.length === 0) {
-    throw new ApiError(400, 'Messages array is required');
-  }
+  const { messages } = extractIdeaSchema.parse(parseBody(event));
 
   const conversationText = messages
     .map((m) => `${m.role === 'user' ? 'User' : 'Bob'}: ${m.content}`)

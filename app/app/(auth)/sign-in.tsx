@@ -1,3 +1,4 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -11,11 +12,12 @@ import { hapticLight } from '@/utils/haptics';
 
 export default function SignInScreen() {
   const router = useRouter();
-  const { handleSignIn } = useAuth();
+  const { handleSignIn, handleAppleSignIn, isAppleSignInAvailable } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const canSubmit = email.trim() !== '' && password.length >= 8 && !isLoading;
 
@@ -33,6 +35,21 @@ export default function SignInScreen() {
     }
   }, [canSubmit, email, password, handleSignIn]);
 
+  const onAppleSignIn = useCallback(async () => {
+    hapticLight();
+    setAppleLoading(true);
+    try {
+      await handleAppleSignIn();
+    } catch (error) {
+      // User cancelled — not an error
+      if (error instanceof Error && error.message.includes('ERR_REQUEST_CANCELED')) return;
+      const message = error instanceof Error ? error.message : 'Apple sign-in failed';
+      Alert.alert('Error', message);
+    } finally {
+      setAppleLoading(false);
+    }
+  }, [handleAppleSignIn]);
+
   return (
     <SafeAreaView style={styles.container}>
       <GradientBackground />
@@ -46,6 +63,25 @@ export default function SignInScreen() {
           <Text style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>Sign in to pick up where you left off</Text>
         </View>
+
+        {isAppleSignInAvailable && (
+          <View style={styles.appleSection}>
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={radius.md}
+              style={styles.appleButton}
+              onPress={() => void onAppleSignIn()}
+            />
+            {appleLoading && <Text style={styles.appleLoadingText}>Connecting...</Text>}
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          </View>
+        )}
 
         <View style={styles.form}>
           <View style={styles.field}>
@@ -111,7 +147,41 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing['4xl'],
+    marginBottom: spacing['3xl'],
+  },
+  appleSection: {
+    marginBottom: spacing['2xl'],
+  },
+  appleButton: {
+    width: '100%',
+    height: 50,
+  },
+  appleLoadingText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.text.muted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border.medium,
+  },
+  dividerText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.text.muted,
+    paddingHorizontal: spacing.lg,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   brandLabel: {
     fontFamily: fontFamily.mono.regular,

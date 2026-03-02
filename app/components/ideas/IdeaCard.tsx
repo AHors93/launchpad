@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
@@ -20,12 +20,22 @@ function formatDate(d: string): string {
 interface IdeaCardProps {
   idea: Idea;
   onStatusChange: (ideaId: string, status: IdeaStatus) => void;
+  onTitleChange: (ideaId: string, title: string) => void;
   onDelete: (ideaId: string) => void;
   onCoach: (ideaId: string, ideaTitle: string, ideaDesc: string) => void;
 }
 
-export function IdeaCard({ idea, onStatusChange, onDelete, onCoach }: IdeaCardProps) {
+export function IdeaCard({
+  idea,
+  onStatusChange,
+  onTitleChange,
+  onDelete,
+  onCoach,
+}: IdeaCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(idea.title);
+  const titleInputRef = useRef<TextInput>(null);
   const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
 
   const translateX = useSharedValue(0);
@@ -64,6 +74,24 @@ export function IdeaCard({ idea, onStatusChange, onDelete, onCoach }: IdeaCardPr
     });
   };
 
+  const handleTitleSave = useCallback(() => {
+    const trimmed = titleDraft.trim();
+    if (trimmed === '' || trimmed === idea.title) {
+      setTitleDraft(idea.title);
+      setEditingTitle(false);
+      return;
+    }
+    onTitleChange(idea.ideaId, trimmed);
+    setEditingTitle(false);
+  }, [titleDraft, idea.title, idea.ideaId, onTitleChange]);
+
+  const handleTitlePress = useCallback(() => {
+    if (!expanded) return;
+    setTitleDraft(idea.title);
+    setEditingTitle(true);
+    setTimeout(() => titleInputRef.current?.focus(), 50);
+  }, [expanded, idea.title]);
+
   const handleCoach = () => {
     onCoach(idea.ideaId, idea.title, idea.description ?? '');
   };
@@ -92,9 +120,25 @@ export function IdeaCard({ idea, onStatusChange, onDelete, onCoach }: IdeaCardPr
         {/* Header row */}
         <View style={styles.headerRow}>
           <View style={styles.headerContent}>
-            <Text style={styles.title} numberOfLines={2}>
-              {idea.title}
-            </Text>
+            {editingTitle ? (
+              <TextInput
+                ref={titleInputRef}
+                style={styles.titleInput}
+                value={titleDraft}
+                onChangeText={setTitleDraft}
+                onBlur={handleTitleSave}
+                onSubmitEditing={handleTitleSave}
+                maxLength={200}
+                returnKeyType="done"
+                selectTextOnFocus
+              />
+            ) : (
+              <Pressable onPress={handleTitlePress} disabled={!expanded}>
+                <Text style={styles.title} numberOfLines={2}>
+                  {idea.title}
+                </Text>
+              </Pressable>
+            )}
             <View style={styles.metaRow}>
               <View style={[styles.statusBadge, { backgroundColor: statusObj.color + '22' }]}>
                 <Text style={[styles.statusBadgeText, { color: statusObj.color }]}>
@@ -175,6 +219,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.primary,
     marginBottom: spacing.sm,
+  },
+  titleInput: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 16,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.amber[500],
+    paddingVertical: 2,
+    paddingHorizontal: 0,
   },
   metaRow: {
     flexDirection: 'row',

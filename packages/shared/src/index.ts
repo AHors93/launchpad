@@ -26,9 +26,26 @@ export {
 export {
   sendMessageSchema,
   createConversationSchema,
+  updateConversationSchema,
+  extractIdeaSchema,
   type SendMessageInput,
   type CreateConversationInput,
+  type UpdateConversationInput,
+  type ExtractIdeaInput,
 } from './validation/message.schema';
+export {
+  exploreSearchSchema,
+  savePathSchema,
+  type ExploreSearchInput,
+  type SavePathInput,
+} from './validation/explore.schema';
+export {
+  registerPushSchema,
+  updateNotificationPrefsSchema,
+  type RegisterPushInput,
+  type UpdateNotificationPrefsInput,
+} from './validation/notification.schema';
+export { appleSignInSchema, type AppleSignInInput } from './validation/auth.schema';
 
 // Constants
 export { IDEA_STATUSES, STATUS_LABELS, STATUS_COLORS } from './constants/statuses';

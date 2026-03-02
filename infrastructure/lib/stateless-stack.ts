@@ -161,6 +161,8 @@ export class StatelessStack extends cdk.Stack {
     // ─── Coach API ──────────────────────────────────────────────
     const createConvo = createApiHandler('CreateConvo', 'api/coach/create-convo.ts');
     const listConvos = createApiHandler('ListConvos', 'api/coach/list-convos.ts');
+    const getMessages = createApiHandler('GetMessages', 'api/coach/get-messages.ts');
+    const updateConvo = createApiHandler('UpdateConvo', 'api/coach/update-convo.ts');
     const sendMessage = createApiHandler('SendMessage', 'api/coach/send-message.ts', claudeEnv);
     const nudgeIdea = createApiHandler('NudgeIdea', 'api/coach/nudge-idea.ts', claudeEnv);
 
@@ -178,14 +180,34 @@ export class StatelessStack extends cdk.Stack {
     });
     api.addRoutes({
       path: '/coach/conversations/{convoId}/messages',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('GetMessagesInt', getMessages),
+      authorizer,
+    });
+    api.addRoutes({
+      path: '/coach/conversations/{convoId}/messages',
       methods: [apigatewayv2.HttpMethod.POST],
       integration: new HttpLambdaIntegration('SendMessageInt', sendMessage),
+      authorizer,
+    });
+    api.addRoutes({
+      path: '/coach/conversations/{convoId}',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration('UpdateConvoInt', updateConvo),
       authorizer,
     });
     api.addRoutes({
       path: '/coach/nudge/{ideaId}',
       methods: [apigatewayv2.HttpMethod.POST],
       integration: new HttpLambdaIntegration('NudgeIdeaInt', nudgeIdea),
+      authorizer,
+    });
+
+    const deleteConvo = createApiHandler('DeleteConvo', 'api/coach/delete-convo.ts');
+    api.addRoutes({
+      path: '/coach/conversations/{convoId}',
+      methods: [apigatewayv2.HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('DeleteConvoInt', deleteConvo),
       authorizer,
     });
 
@@ -301,6 +323,86 @@ export class StatelessStack extends cdk.Stack {
       path: '/notifications/settings',
       methods: [apigatewayv2.HttpMethod.PATCH],
       integration: new HttpLambdaIntegration('UpdateSettingsInt', notifSettings),
+      authorizer,
+    });
+
+    // ─── Apple Sign-In API (unauthenticated) ────────────────────
+    const appleAuthSecretArn = cdk.Stack.of(this).formatArn({
+      service: 'ssm',
+      resource: 'parameter',
+      resourceName: `launchpad/${stage}/apple-auth-secret`,
+    });
+
+    const appleSignIn = new lambdaNode.NodejsFunction(this, 'AppleSignIn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler',
+      entry: path.join(__dirname, '..', '..', 'lambdas', 'api/auth/apple-signin.ts'),
+      environment: {
+        ...sharedEnv,
+        USER_POOL_ID: userPool.userPoolId,
+        APPLE_AUTH_SECRET_PARAM: `/launchpad/${stage}/apple-auth-secret`,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+        minify: true,
+        sourceMap: true,
+      },
+    });
+    table.grantReadWriteData(appleSignIn);
+    appleSignIn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ssm:GetParameter'],
+        resources: [appleAuthSecretArn],
+      }),
+    );
+    appleSignIn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'cognito-idp:ListUsers',
+          'cognito-idp:AdminCreateUser',
+          'cognito-idp:AdminSetUserPassword',
+        ],
+        resources: [userPool.userPoolArn],
+      }),
+    );
+
+    api.addRoutes({
+      path: '/auth/apple',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration: new HttpLambdaIntegration('AppleSignInInt', appleSignIn),
+    });
+
+    // ─── Account API ───────────────────────────────────────────
+    const deleteAccount = new lambdaNode.NodejsFunction(this, 'DeleteAccount', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler',
+      entry: path.join(__dirname, '..', '..', 'lambdas', 'api/account/delete.ts'),
+      environment: {
+        ...sharedEnv,
+        USER_POOL_ID: userPool.userPoolId,
+      },
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 256,
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+        minify: true,
+        sourceMap: true,
+      },
+    });
+    table.grantReadWriteData(deleteAccount);
+    deleteAccount.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['cognito-idp:AdminDeleteUser'],
+        resources: [userPool.userPoolArn],
+      }),
+    );
+
+    api.addRoutes({
+      path: '/account',
+      methods: [apigatewayv2.HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('DeleteAccountInt', deleteAccount),
       authorizer,
     });
 

@@ -1,11 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Application from 'expo-application';
+import * as MailComposer from 'expo-mail-composer';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
 import { INTEREST_SUGGESTIONS } from '@/constants/profile';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   getNotificationPreferences,
   NotificationPreferences,
@@ -13,6 +27,7 @@ import {
 } from '@/hooks/useNotifications';
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/providers/AuthProvider';
+import { isBackendConfigured, deleteAccountApi } from '@/services/api';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
@@ -28,6 +43,7 @@ export default function SettingsScreen() {
   const { handleSignOut, user, isAuthenticated } = useAuth();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
+  const { track } = useAnalytics();
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
 
   // Local form state — synced from profile query
@@ -37,6 +53,7 @@ export default function SettingsScreen() {
   const [goals, setGoals] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [customInterest, setCustomInterest] = useState('');
+  const [savedField, setSavedField] = useState<string | null>(null);
 
   useEffect(() => {
     void getNotificationPreferences().then(setPrefs);
@@ -86,11 +103,61 @@ export default function SettingsScreen() {
 
   const saveField = useCallback(
     (field: 'name' | 'bio' | 'careerBackground' | 'goals', value: string) => {
+      const trimmed = value.trim();
+      const current = profile?.[field] ?? '';
+      if (trimmed === current) return;
       hapticSuccess();
-      updateProfile.mutate({ [field]: value.trim() });
+      updateProfile.mutate({ [field]: trimmed });
+      setSavedField(field);
+      setTimeout(() => {
+        setSavedField((prev) => (prev === field ? null : prev));
+      }, 1600);
     },
-    [updateProfile],
+    [updateProfile, profile],
   );
+
+  const handleFeedback = useCallback(async () => {
+    const available = await MailComposer.isAvailableAsync();
+    if (!available) {
+      Alert.alert('No mail app', 'You can email feedback to adam.horscraft@gmail.com');
+      return;
+    }
+    await MailComposer.composeAsync({
+      recipients: ['adam.horscraft@gmail.com'],
+      subject: 'LaunchPad Feedback',
+      body: `\n\n---\nLaunchPad v${Application.nativeApplicationVersion ?? '1.0.0'}`,
+    });
+    track({ name: 'feedback_sent' });
+  }, [track]);
+
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete account',
+      'This will permanently delete your account and all your data — ideas, conversations, saved paths, everything. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete my account',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                if (isBackendConfigured()) {
+                  await deleteAccountApi();
+                }
+                if (router.canDismiss()) {
+                  router.dismiss();
+                }
+                await handleSignOut();
+              } catch {
+                Alert.alert('Error', 'Failed to delete account. Please try again.');
+              }
+            })();
+          },
+        },
+      ],
+    );
+  }, [handleSignOut, router]);
 
   const onSignOut = useCallback(async () => {
     if (router.canDismiss()) {
@@ -122,6 +189,7 @@ export default function SettingsScreen() {
               value={name}
               onChangeText={setName}
               onBlur={() => saveField('name', name)}
+              saved={savedField === 'name'}
             />
             <View style={styles.divider} />
             <ProfileField
@@ -130,6 +198,7 @@ export default function SettingsScreen() {
               value={careerBackground}
               onChangeText={setCareerBackground}
               onBlur={() => saveField('careerBackground', careerBackground)}
+              saved={savedField === 'careerBackground'}
             />
             <View style={styles.divider} />
             <ProfileField
@@ -138,6 +207,7 @@ export default function SettingsScreen() {
               value={goals}
               onChangeText={setGoals}
               onBlur={() => saveField('goals', goals)}
+              saved={savedField === 'goals'}
               multiline
             />
             <View style={styles.divider} />
@@ -147,6 +217,7 @@ export default function SettingsScreen() {
               value={bio}
               onChangeText={setBio}
               onBlur={() => saveField('bio', bio)}
+              saved={savedField === 'bio'}
               multiline
             />
           </View>
@@ -249,11 +320,44 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <Pressable style={styles.feedbackButton} onPress={() => void handleFeedback()}>
+          <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.amber[500]} />
+          <Text style={styles.feedbackText}>Send feedback</Text>
+        </Pressable>
+
         <Pressable style={styles.signOutButton} onPress={() => void onSignOut()}>
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
 
-        <Text style={styles.version}>LaunchPad v1.0.0</Text>
+        <Pressable style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+          <Text style={styles.deleteAccountText}>Delete account</Text>
+        </Pressable>
+
+        <Text
+          style={styles.version}
+        >{`LaunchPad v${Application.nativeApplicationVersion ?? '1.0.0'}`}</Text>
+
+        <View style={styles.legalLinks}>
+          <Pressable
+            onPress={() =>
+              void Linking.openURL(
+                'https://www.notion.so/Privacy-Policy-31725e9f405780598782e0897aedfcee',
+              )
+            }
+          >
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </Pressable>
+          <Text style={styles.legalDot}>{'\u00B7'}</Text>
+          <Pressable
+            onPress={() =>
+              void Linking.openURL(
+                'https://www.notion.so/Terms-of-Service-31725e9f40578070927fedcf0c115d84',
+              )
+            }
+          >
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -266,6 +370,7 @@ function ProfileField({
   onChangeText,
   onBlur,
   multiline,
+  saved,
 }: {
   label: string;
   placeholder: string;
@@ -273,10 +378,27 @@ function ProfileField({
   onChangeText: (text: string) => void;
   onBlur: () => void;
   multiline?: boolean;
+  saved?: boolean;
 }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (saved === true) {
+      opacity.setValue(0);
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.delay(1000),
+        Animated.timing(opacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [saved, opacity]);
+
   return (
     <View style={styles.profileField}>
-      <Text style={styles.profileFieldLabel}>{label}</Text>
+      <View style={styles.profileFieldHeader}>
+        <Text style={styles.profileFieldLabel}>{label}</Text>
+        <Animated.Text style={[styles.savedIndicator, { opacity }]}>Saved</Animated.Text>
+      </View>
       <TextInput
         style={[styles.profileInput, multiline === true && styles.profileInputMultiline]}
         placeholder={placeholder}
@@ -404,10 +526,20 @@ const styles = StyleSheet.create({
   profileField: {
     gap: spacing.sm,
   },
+  profileFieldHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   profileFieldLabel: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 13,
     color: colors.text.primary,
+  },
+  savedIndicator: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 11,
+    color: colors.amber[500],
   },
   profileInput: {
     fontFamily: fontFamily.display.regular,
@@ -486,9 +618,27 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     lineHeight: 22,
   },
-  signOutButton: {
+  feedbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
     marginHorizontal: spacing['2xl'],
     marginTop: spacing['3xl'],
+    paddingVertical: spacing.xl,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.amber[300],
+    backgroundColor: colors.amber[100],
+  },
+  feedbackText: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 14,
+    color: colors.amber[500],
+  },
+  signOutButton: {
+    marginHorizontal: spacing['2xl'],
+    marginTop: spacing.lg,
     paddingVertical: spacing.xl,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -500,11 +650,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.red[400],
   },
+  deleteAccountButton: {
+    marginHorizontal: spacing['2xl'],
+    marginTop: spacing.md,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  deleteAccountText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.text.muted,
+    textDecorationLine: 'underline',
+  },
   version: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
     color: colors.text.muted,
     textAlign: 'center',
     marginTop: spacing['2xl'],
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing['2xl'],
+  },
+  legalLink: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.text.muted,
+    textDecorationLine: 'underline',
+  },
+  legalDot: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.text.muted,
   },
 });

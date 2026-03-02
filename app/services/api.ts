@@ -1,4 +1,5 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { fetch as expoFetch } from 'expo/fetch';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 const STREAMING_URL = process.env.EXPO_PUBLIC_STREAMING_URL ?? '';
@@ -85,6 +86,12 @@ export async function deleteIdeaApi(ideaId: string): Promise<void> {
   await apiClient(`/ideas/${ideaId}`, { method: 'DELETE' });
 }
 
+// ── Account API ───────────────────────────────────────────
+
+export async function deleteAccountApi(): Promise<void> {
+  await apiClient('/account', { method: 'DELETE' });
+}
+
 // ── Coach API ──────────────────────────────────────────────
 
 export interface ApiConversation {
@@ -102,6 +109,27 @@ export interface ApiMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+}
+
+export async function deleteConversationApi(convoId: string): Promise<void> {
+  await apiClient(`/coach/conversations/${convoId}`, { method: 'DELETE' });
+}
+
+export async function updateConversationApi(
+  convoId: string,
+  updates: { linkedIdeaId?: string },
+): Promise<void> {
+  await apiClient(`/coach/conversations/${convoId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function fetchMessagesApi(convoId: string): Promise<ApiMessage[]> {
+  const data = await apiClient<{ messages: ApiMessage[] }>(
+    `/coach/conversations/${convoId}/messages`,
+  );
+  return data.messages;
 }
 
 export async function fetchConversations(): Promise<ApiConversation[]> {
@@ -176,7 +204,7 @@ export async function streamCoachMessageApi(
 }> {
   const token = await getAuthToken();
 
-  const response = await fetch(STREAMING_URL, {
+  const response = await expoFetch(STREAMING_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -246,6 +274,29 @@ export async function streamCoachMessageApi(
   }
 
   return { userMessageId, assistantMessageId, fullText, userTimestamp, assistantTimestamp };
+}
+
+// ── Apple Sign-In API ─────────────────────────────────────
+
+export async function appleSignInApi(input: {
+  identityToken: string;
+  fullName?: { givenName?: string | null; familyName?: string | null };
+}): Promise<{ email: string; authKey: string; isNewUser?: boolean }> {
+  const url = `${API_BASE_URL}/auth/apple`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({ error: 'Apple sign-in failed' }))) as {
+      error?: string;
+    };
+    throw new Error(body.error ?? `API error ${response.status}`);
+  }
+
+  return response.json() as Promise<{ email: string; authKey: string; isNewUser?: boolean }>;
 }
 
 // ── Coach Idea Extraction API ───────────────────────────

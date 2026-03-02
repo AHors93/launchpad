@@ -8,12 +8,15 @@ import { useCreateIdea } from './useIdeas';
 
 import {
   createConversationApi,
+  deleteConversationApi,
   extractIdeaApi,
   fetchConversations,
+  fetchMessagesApi,
   isBackendConfigured,
   isStreamingConfigured,
   sendMessageApi,
   streamCoachMessageApi,
+  updateConversationApi,
 } from '@/services/api';
 import { extractIdeaFromConversation, streamCoachMessage } from '@/services/coach';
 import { ChatMessage, Conversation } from '@/types/coach';
@@ -33,6 +36,7 @@ async function loadConversations(): Promise<Conversation[]> {
     return apiConvos.map((c) => ({
       id: c.convoId,
       title: c.title,
+      ideaId: c.linkedIdeaId,
       messages: [],
       createdAt: c.startedAt,
       updatedAt: c.lastMessageAt,
@@ -58,13 +62,14 @@ export function useCreateConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input?: { linkedIdeaId?: string }) => {
       if (useApi) {
-        const { convoId } = await createConversationApi();
+        const { convoId } = await createConversationApi(input);
         const now = new Date().toISOString();
         return {
           id: convoId,
           title: 'New conversation',
+          ideaId: input?.linkedIdeaId,
           messages: [],
           createdAt: now,
           updatedAt: now,
@@ -75,6 +80,7 @@ export function useCreateConversation() {
       const newConvo: Conversation = {
         id: Crypto.randomUUID(),
         title: 'New conversation',
+        ideaId: input?.linkedIdeaId,
         messages: [],
         createdAt: now,
         updatedAt: now,
@@ -100,13 +106,23 @@ export function useCreateConversation() {
       ]);
       return { previous };
     },
+    onSuccess: (newConvo) => {
+      // Replace the temp conversation with the real one so sendMessage can find it
+      queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+        (old ?? []).map((c) => (c.id.startsWith('temp-') ? newConvo : c)),
+      );
+    },
     onError: (_err, _vars, context) => {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(coachKeys.all, context.previous);
       }
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: coachKeys.all });
+      // In API mode, a refetch would return conversations with messages: [] and wipe
+      // any in-memory messages. The cache is kept in sync by onSuccess above.
+      if (!useApi) {
+        void queryClient.invalidateQueries({ queryKey: coachKeys.all });
+      }
     },
   });
 }
@@ -117,6 +133,7 @@ export function useDeleteConversation() {
   return useMutation({
     mutationFn: async (conversationId: string) => {
       if (useApi) {
+        await deleteConversationApi(conversationId);
         return;
       }
       const conversations = await loadConversations();
@@ -366,11 +383,12 @@ export function useSendMessage() {
       );
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previous !== undefined) {
         queryClient.setQueryData(coachKeys.all, context.previous);
       }
-      Alert.alert('Error', 'Failed to send message. Please try again.');
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      Alert.alert('Error', message);
     },
     onSettled: () => {
       // In API mode, the cache is authoritative for messages (server doesn't return them
@@ -386,6 +404,7 @@ export function useSendMessage() {
 
 export function useSaveIdeaFromChat(conversation: Conversation | undefined) {
   const createIdea = useCreateIdea();
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
 
   const save = useCallback(async () => {
@@ -403,9 +422,18 @@ export function useSaveIdeaFromChat(conversation: Conversation | undefined) {
       createIdea.mutate(
         { title: extracted.title, description: extracted.description },
         {
-          onSuccess: () => {
+          onSuccess: (idea) => {
             hapticSuccess();
             Alert.alert('Saved to vault', `"${extracted.title}" has been added to your ideas.`);
+
+            // Link this conversation to the saved idea
+            const ideaId = idea.ideaId;
+            if (useApi) {
+              void updateConversationApi(conversation.id, { linkedIdeaId: ideaId });
+            }
+            queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+              (old ?? []).map((c) => (c.id === conversation.id ? { ...c, ideaId } : c)),
+            );
           },
         },
       );
@@ -414,13 +442,14 @@ export function useSaveIdeaFromChat(conversation: Conversation | undefined) {
     } finally {
       setIsSaving(false);
     }
-  }, [conversation, createIdea]);
+  }, [conversation, createIdea, queryClient]);
 
   return { saveAsIdea: save, isSavingIdea: isSaving };
 }
 
 export function useIdeaLinking(
   params: { ideaId?: string; ideaTitle?: string; ideaDesc?: string },
+  conversations: Conversation[] | undefined,
   createConversation: ReturnType<typeof useCreateConversation>,
   sendMessage: ReturnType<typeof useSendMessage>,
   setActiveId: (id: string) => void,
@@ -428,6 +457,7 @@ export function useIdeaLinking(
   profile?: UserProfile,
 ) {
   const handledRef = useRef<string | undefined>(undefined);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (
@@ -441,16 +471,45 @@ export function useIdeaLinking(
     if (handledRef.current === params.ideaId) return;
     handledRef.current = params.ideaId;
 
+    // Check for existing conversation linked to this idea
+    const existingConvo = conversations?.find((c) => c.ideaId === params.ideaId);
+
+    if (existingConvo !== undefined) {
+      setActiveId(existingConvo.id);
+
+      // Load messages from API if not already in cache
+      if (useApi && existingConvo.messages.length === 0) {
+        void fetchMessagesApi(existingConvo.id).then((apiMessages) => {
+          const messages: ChatMessage[] = apiMessages.map((m) => ({
+            id: m.messageId,
+            role: m.role,
+            content: m.content,
+            createdAt: m.timestamp,
+          }));
+          queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+            (old ?? []).map((c) => (c.id === existingConvo.id ? { ...c, messages } : c)),
+          );
+        });
+      }
+
+      clearParams();
+      return;
+    }
+
+    // No existing conversation — create a new one linked to this idea
     const desc = params.ideaDesc !== undefined && params.ideaDesc !== '' ? params.ideaDesc : '';
     const prompt = `I have an idea called "${params.ideaTitle}"${desc !== '' ? `. Here's what it's about: ${desc}` : ''}. Help me think through this — what should I focus on first?`;
 
-    createConversation.mutate(undefined, {
-      onSuccess: (newConvo) => {
-        setActiveId(newConvo.id);
-        sendMessage.mutate({ conversationId: newConvo.id, content: prompt, profile });
-        clearParams();
+    createConversation.mutate(
+      { linkedIdeaId: params.ideaId },
+      {
+        onSuccess: (newConvo) => {
+          setActiveId(newConvo.id);
+          sendMessage.mutate({ conversationId: newConvo.id, content: prompt, profile });
+          clearParams();
+        },
       },
-    });
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.ideaId, params.ideaTitle]);
 }

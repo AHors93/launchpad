@@ -3,20 +3,21 @@
     "name": "LaunchPad",
     "slug": "launchpad",
     "version": "1.0.0",
+    "description": "Your AI-powered thinking partner for turning ideas into action.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "launchpad",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
       "backgroundColor": "#111114"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.adamhorscraft.launchpad",
+      "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCalendarsUsageDescription": "LaunchPad uses calendar access to add events suggested by Bob to your calendar."
       }
     },
     "android": {
@@ -44,7 +45,9 @@
           "color": "#f59e0b"
         }
       ],
-      "expo-mail-composer"
+      "expo-mail-composer",
+      "expo-apple-authentication",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

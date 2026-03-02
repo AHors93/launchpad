@@ -7,6 +7,7 @@ import {
   signOut,
   signUp,
 } from 'aws-amplify/auth';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import {
   createContext,
   ReactNode,
@@ -16,7 +17,9 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 
+import { appleSignInApi, isBackendConfigured } from '@/services/api';
 import { AuthState, AuthUser } from '@/types/auth';
 
 interface AuthContextValue extends AuthState {
@@ -24,6 +27,8 @@ interface AuthContextValue extends AuthState {
   handleSignUp: (email: string, password: string) => Promise<void>;
   handleConfirmSignUp: (email: string, code: string) => Promise<void>;
   handleResendCode: (email: string) => Promise<void>;
+  handleAppleSignIn: () => Promise<void>;
+  isAppleSignInAvailable: boolean;
   handleSignOut: () => Promise<void>;
   getToken: () => Promise<string | null>;
 }
@@ -38,6 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     needsConfirmation: false,
     confirmationEmail: null,
   });
+
+  const [isAppleSignInAvailable, setIsAppleSignInAvailable] = useState(false);
+
+  // Check Apple Sign In availability
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      void AppleAuthentication.isAvailableAsync().then(setIsAppleSignInAvailable);
+    }
+  }, []);
 
   // Check if user is already signed in
   useEffect(() => {
@@ -109,6 +123,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleAppleSignIn = useCallback(async () => {
+    if (!isBackendConfigured()) {
+      throw new Error('Backend not configured');
+    }
+
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    if (credential.identityToken === null) {
+      throw new Error('No identity token from Apple');
+    }
+
+    // Exchange Apple token for Cognito auth key via backend
+    const { email, authKey } = await appleSignInApi({
+      identityToken: credential.identityToken,
+      fullName: credential.fullName
+        ? {
+            givenName: credential.fullName.givenName,
+            familyName: credential.fullName.familyName,
+          }
+        : undefined,
+    });
+
+    // Sign in with Amplify using the auth key
+    const result = await signIn({
+      username: email,
+      password: authKey,
+      ...(__DEV__ ? { options: { authFlowType: 'USER_PASSWORD_AUTH' as const } } : {}),
+    });
+
+    if (result.isSignedIn) {
+      const cognitoUser = await getCurrentUser();
+      setState({
+        isLoading: false,
+        isAuthenticated: true,
+        user: { userId: cognitoUser.userId, email },
+        needsConfirmation: false,
+        confirmationEmail: null,
+      });
+    }
+  }, []);
+
   const handleConfirmSignUp = useCallback(async (email: string, code: string) => {
     const result = await confirmSignUp({ username: email, confirmationCode: code });
     if (result.isSignUpComplete) {
@@ -156,6 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       handleSignUp,
       handleConfirmSignUp,
       handleResendCode,
+      handleAppleSignIn,
+      isAppleSignInAvailable,
       handleSignOut,
       getToken,
     }),
@@ -165,6 +227,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       handleSignUp,
       handleConfirmSignUp,
       handleResendCode,
+      handleAppleSignIn,
+      isAppleSignInAvailable,
       handleSignOut,
       getToken,
     ],

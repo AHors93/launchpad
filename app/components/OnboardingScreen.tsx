@@ -23,7 +23,7 @@ const SLIDES: OnboardingSlide[] = [
     id: 'welcome',
     emoji: '\u{1F44B}',
     title: "Hey, I'm Adam",
-    body: "I wanted to add a personal touch as to why this app has come into existence.\n\nI've been a software engineer just over 6 years, last September I was made redundant. The time off helped guide me to pursue what I really want to do, and its change career for the 3rd time before 35!\n\nIn my experience, there isn't a lot of guidance out there, if you want to change careers. It takes hours and hours just to even get remotely close to what you might be looking for.\n\nLaunchpad is here as a bit of a guide to help you get started, or even just give you some inspiration. It's not career advice, disclaimer, but it can hopefully give you that nudge to maybe purse the career you really want, or make that app you've dreamt about creating...",
+    body: "I wanted to add a personal touch as to why this app has come into existence.\n\nI've been a software engineer just over 6 years, last September I was made redundant. The time off helped guide me to pursue what I really want to do, and its change career for the 3rd time before 35!\n\nIn my experience, there isn't a lot of guidance out there, if you want to change careers. It takes hours and hours just to even get remotely close to what you might be looking for.\n\nLaunchpad is here as a bit of a guide to help you get started, or even just give you some inspiration. It's not career advice, disclaimer, but it can hopefully give you that nudge to maybe pursue the career you really want, or make that app you've dreamt about creating...",
     accent: colors.amber[500],
   },
   {
@@ -51,7 +51,7 @@ const SLIDES: OnboardingSlide[] = [
     id: 'explore',
     emoji: '\u{1F50D}',
     title: 'Explore paths',
-    body: "Curious about a career change? Bob will help you explore, and if you allow notifcations, will give you a nudge if you're stuck or if some time has passed and you need to follow up.",
+    body: "Curious about a career change? Bob will help you explore, and if you allow notifications, will give you a nudge if you're stuck or if some time has passed and you need to follow up.",
     accent: colors.blue[400],
   },
   {

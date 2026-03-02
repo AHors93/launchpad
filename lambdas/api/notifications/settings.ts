@@ -1,4 +1,5 @@
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { updateNotificationPrefsSchema } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
 import { withErrorHandling, getUserId, parseBody, success } from '../../shared/middleware';
@@ -23,7 +24,7 @@ export const handler = withErrorHandling(async (event) => {
     return success({ preferences });
   }
 
-  const preferences = parseBody<Record<string, boolean>>(event);
+  const preferences = updateNotificationPrefsSchema.parse(parseBody(event));
   await dynamo.send(
     new UpdateCommand({
       TableName: TABLE_NAME,

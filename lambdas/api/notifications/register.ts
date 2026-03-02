@@ -1,11 +1,12 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { registerPushSchema } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
 import { withErrorHandling, getUserId, parseBody, success } from '../../shared/middleware';
 
 export const handler = withErrorHandling(async (event) => {
   const userId = getUserId(event);
-  const { pushToken } = parseBody<{ pushToken: string }>(event);
+  const { pushToken } = registerPushSchema.parse(parseBody(event));
 
   await dynamo.send(
     new UpdateCommand({

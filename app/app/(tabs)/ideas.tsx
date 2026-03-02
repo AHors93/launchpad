@@ -5,11 +5,11 @@ import { useCallback, useRef } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EncouragementBanner } from '@/components/EncouragementBanner';
 import { GradientBackground } from '@/components/GradientBackground';
 import { AddIdeaSheet } from '@/components/ideas/AddIdeaSheet';
 import { IdeaCard } from '@/components/ideas/IdeaCard';
 import { StatsRow } from '@/components/ideas/StatsRow';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   useCreateIdea,
   useDeleteIdea,
@@ -45,12 +45,7 @@ function ListHeader({
           </Pressable>
         </View>
         <Text style={styles.tagline}>Stop thinking. Start making.</Text>
-        <Text style={styles.subtitle}>
-          Your ideas deserve more than a notes app. Your career deserves more than wondering.
-        </Text>
       </View>
-
-      <EncouragementBanner />
       <StatsRow stats={stats} />
     </View>
   );
@@ -63,6 +58,7 @@ export default function IdeasScreen() {
   const createIdea = useCreateIdea();
   const updateIdea = useUpdateIdea();
   const deleteIdea = useDeleteIdea();
+  const { track } = useAnalytics();
   const sheetRef = useRef<BottomSheet>(null);
 
   const handleOpenSettings = useCallback(() => {
@@ -80,23 +76,38 @@ export default function IdeasScreen() {
 
   const handleCreateIdea = useCallback(
     (title: string) => {
-      createIdea.mutate({ title });
+      createIdea.mutate(
+        { title },
+        {
+          onSuccess: (idea) => track({ name: 'idea_created', properties: { ideaId: idea.ideaId } }),
+        },
+      );
     },
-    [createIdea],
+    [createIdea, track],
   );
 
   const handleStatusChange = useCallback(
     (ideaId: string, status: IdeaStatus) => {
       updateIdea.mutate({ ideaId, updates: { status } });
+      track({ name: 'idea_status_changed', properties: { ideaId, status } });
     },
-    [updateIdea],
+    [updateIdea, track],
+  );
+
+  const handleTitleChange = useCallback(
+    (ideaId: string, title: string) => {
+      updateIdea.mutate({ ideaId, updates: { title } });
+      track({ name: 'idea_title_edited', properties: { ideaId } });
+    },
+    [updateIdea, track],
   );
 
   const handleDeleteIdea = useCallback(
     (ideaId: string) => {
       deleteIdea.mutate(ideaId);
+      track({ name: 'idea_deleted', properties: { ideaId } });
     },
-    [deleteIdea],
+    [deleteIdea, track],
   );
 
   const handleCoachIdea = useCallback(
@@ -114,11 +125,12 @@ export default function IdeasScreen() {
       <IdeaCard
         idea={item}
         onStatusChange={handleStatusChange}
+        onTitleChange={handleTitleChange}
         onDelete={handleDeleteIdea}
         onCoach={handleCoachIdea}
       />
     ),
-    [handleStatusChange, handleDeleteIdea, handleCoachIdea],
+    [handleStatusChange, handleTitleChange, handleDeleteIdea, handleCoachIdea],
   );
 
   const keyExtractor = useCallback((item: Idea) => item.ideaId, []);
@@ -141,7 +153,7 @@ export default function IdeasScreen() {
               <Text style={styles.emptyTitle}>No ideas yet</Text>
               <Text style={styles.emptyText}>
                 {
-                  "That's fine \u2014 everyone starts with zero.\nDrop your first one below, even if it's half-baked."
+                  "That's fine \u2014 everyone starts with zero.\nDrop your first one belo and see where it takes you."
                 }
               </Text>
             </View>
@@ -227,14 +239,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.md,
     letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontFamily: fontFamily.display.regular,
-    fontSize: 20,
-    lineHeight: 30,
-    color: colors.text.muted,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
   },
   list: {
     paddingBottom: 100,

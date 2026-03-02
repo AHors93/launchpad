@@ -1,7 +1,6 @@
 // Polyfills must be imported before Amplify
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
-
 import {
   EBGaramond_400Regular,
   EBGaramond_400Regular_Italic,
@@ -14,18 +13,20 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { OnboardingScreen } from '@/components/OnboardingScreen';
 import { configureAmplify } from '@/config/amplify';
 import { ONBOARDING_KEY } from '@/constants/onboarding';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import { useNotifications } from '@/hooks/useNotifications';
+import { AnalyticsProvider } from '@/providers/AnalyticsProvider';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
-import { colors } from '@/theme/tokens';
+import { colors, fontFamily } from '@/theme/tokens';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -38,10 +39,21 @@ const cognitoConfigured =
 
 // ── Auth routing — navigates based on auth state ─────────────
 function AuthRouter() {
-  const { isLoading, isAuthenticated, needsConfirmation } = useAuth();
+  const { isLoading, isAuthenticated, needsConfirmation, user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const { identify, reset } = useAnalytics();
   useNotifications();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (isAuthenticated && user !== null) {
+      identify(user.userId, { email: user.email });
+    } else if (!isAuthenticated) {
+      reset();
+    }
+  }, [isLoading, isAuthenticated, user, identify, reset]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -107,6 +119,9 @@ export default function RootLayout() {
 
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [showBrandedSplash, setShowBrandedSplash] = useState(true);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
+  const splashTextOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Uncomment to reset onboarding for testing:
@@ -124,8 +139,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded && onboardingChecked) {
       void SplashScreen.hideAsync();
+      Animated.sequence([
+        Animated.timing(splashTextOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.delay(2000),
+        Animated.timing(splashOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]).start(() => {
+        setShowBrandedSplash(false);
+      });
     }
-  }, [loaded, onboardingChecked]);
+  }, [loaded, onboardingChecked, splashOpacity, splashTextOpacity]);
 
   const handleOnboardingComplete = useCallback(async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
@@ -137,23 +159,54 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <KeyboardProvider>
-        <QueryProvider>
-          <AuthProvider>
-            <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
-              <StatusBar style="light" />
-              {!onboardingComplete ? (
-                <OnboardingScreen onComplete={() => void handleOnboardingComplete()} />
-              ) : cognitoConfigured ? (
-                <AuthRouter />
-              ) : (
-                <LocalRouter />
-              )}
-            </View>
-          </AuthProvider>
-        </QueryProvider>
-      </KeyboardProvider>
-    </GestureHandlerRootView>
+    <AnalyticsProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
+                <StatusBar style="light" />
+                {!onboardingComplete ? (
+                  <OnboardingScreen onComplete={() => void handleOnboardingComplete()} />
+                ) : cognitoConfigured ? (
+                  <AuthRouter />
+                ) : (
+                  <LocalRouter />
+                )}
+                {showBrandedSplash && (
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      splashStyles.overlay,
+                      { opacity: splashOpacity },
+                    ]}
+                  >
+                    <Animated.Text style={[splashStyles.text, { opacity: splashTextOpacity }]}>
+                      LaunchPad
+                    </Animated.Text>
+                  </Animated.View>
+                )}
+              </View>
+            </AuthProvider>
+          </QueryProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </AnalyticsProvider>
   );
 }
+
+const splashStyles = StyleSheet.create({
+  overlay: {
+    backgroundColor: colors.bg.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 28,
+    lineHeight: 38,
+    color: colors.amber[500],
+    textTransform: 'uppercase',
+    letterSpacing: 4,
+  },
+});
