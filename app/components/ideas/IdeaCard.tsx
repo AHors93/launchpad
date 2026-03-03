@@ -9,8 +9,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { StatusPill } from '@/components/StatusPill';
-import { animation, colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
-import { Idea, IdeaStatus } from '@/types/idea';
+import { TRACK_CONFIG, getStatusesForTrack } from '@/constants/tracks';
+import { animation, colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { Idea, IdeaStatus, TrackType } from '@/types/idea';
 import { hapticLight, hapticWarning } from '@/utils/haptics';
 
 function formatDate(d: string): string {
@@ -38,7 +39,11 @@ export function IdeaCard({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(idea.title);
   const titleInputRef = useRef<TextInput>(null);
-  const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
+
+  const trackType: TrackType = idea.trackType ?? 'side_project';
+  const trackConfig = TRACK_CONFIG[trackType];
+  const trackStatuses = getStatusesForTrack(trackType);
+  const statusObj = trackStatuses.find((s) => s.value === idea.status) ?? trackStatuses[0];
 
   const translateX = useSharedValue(0);
   const bgProgress = useSharedValue(0);
@@ -112,13 +117,7 @@ export function IdeaCard({
 
   return (
     <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-      <Animated.View
-        style={[
-          styles.card,
-          { borderLeftColor: statusObj.color, borderColor: statusObj.color + '33' },
-          cardAnimatedStyle,
-        ]}
-      >
+      <Animated.View style={[styles.card, {}, cardAnimatedStyle]}>
         {/* Header row */}
         <View style={styles.headerRow}>
           <View style={styles.headerContent}>
@@ -147,6 +146,13 @@ export function IdeaCard({
                   {statusObj.label}
                 </Text>
               </View>
+              {trackType !== 'side_project' && (
+                <View style={styles.trackBadge}>
+                  <Text style={styles.trackBadgeText}>
+                    {trackConfig.icon} {trackConfig.label}
+                  </Text>
+                </View>
+              )}
               <Text style={styles.dateText}>{formatDate(idea.createdAt)}</Text>
             </View>
           </View>
@@ -166,7 +172,7 @@ export function IdeaCard({
             ) : null}
 
             <View style={styles.statusRow}>
-              {statusConfig.map((s) => (
+              {trackStatuses.map((s) => (
                 <StatusPill
                   key={s.value}
                   status={s}
@@ -204,12 +210,11 @@ export function IdeaCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderLeftWidth: 3,
     borderRadius: radius.xl,
     padding: spacing.xl,
     marginHorizontal: spacing['2xl'],
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
+    backgroundColor: colors.bg.surface,
   },
   headerRow: {
     flexDirection: 'row',
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.amber[500],
+    borderBottomColor: colors.primary[500],
     paddingVertical: 2,
     paddingHorizontal: 0,
   },
@@ -251,6 +256,17 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
   },
+  trackBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bg.surfacePressed,
+  },
+  trackBadgeText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 10,
+    color: colors.text.muted,
+  },
   dateText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
@@ -258,7 +274,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 18,
-    color: '#666666',
+    color: colors.text.secondary,
   },
   expandedContent: {
     marginTop: spacing.xl,

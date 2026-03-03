@@ -2,12 +2,12 @@
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 import {
-  EBGaramond_400Regular,
-  EBGaramond_400Regular_Italic,
-  EBGaramond_600SemiBold,
-  EBGaramond_700Bold,
-} from '@expo-google-fonts/eb-garamond';
-import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from '@expo-google-fonts/nunito';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -109,12 +109,11 @@ function LocalRouter() {
 // ── Root layout ──────────────────────────────────────────────
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    EBGaramond_400Regular,
-    EBGaramond_400Regular_Italic,
-    EBGaramond_600SemiBold,
-    EBGaramond_700Bold,
-    SpaceMono_400Regular,
-    SpaceMono_700Bold,
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
   });
 
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -165,7 +164,7 @@ export default function RootLayout() {
           <QueryProvider>
             <AuthProvider>
               <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
-                <StatusBar style="light" />
+                <StatusBar style="dark" />
                 {!onboardingComplete ? (
                   <OnboardingScreen onComplete={() => void handleOnboardingComplete()} />
                 ) : cognitoConfigured ? (
@@ -202,11 +201,10 @@ const splashStyles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    fontFamily: fontFamily.mono.regular,
+    fontFamily: fontFamily.display.bold,
     fontSize: 28,
     lineHeight: 38,
-    color: colors.amber[500],
-    textTransform: 'uppercase',
-    letterSpacing: 4,
+    color: colors.primary[600],
+    letterSpacing: 1,
   },
 });

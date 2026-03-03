@@ -12,6 +12,7 @@ interface IdeaEventDetail {
   ideaId: string;
   title: string;
   timestamp: string;
+  trackType?: string;
   previousStatus?: string;
   newStatus?: string;
 }
@@ -38,12 +39,20 @@ export const handler = async (event: EventBridgeEvent<string, EventDetail>): Pro
 
   if (detailType === 'idea.created') {
     const d = detail as IdeaEventDetail;
-    prompt = `The user just added a new idea called "${d.title}". Generate a nudge celebrating this and encouraging them to flesh it out.`;
+    const trackContext =
+      d.trackType !== undefined && d.trackType !== 'side_project'
+        ? ` (track: ${d.trackType.replace('_', ' ')})`
+        : '';
+    prompt = `The user just added a new item called "${d.title}"${trackContext}. Generate a nudge celebrating this and encouraging them to flesh it out.`;
     nudgeType = 'idea_created';
     ideaId = d.ideaId;
   } else if (detailType === 'idea.status_changed') {
     const d = detail as IdeaEventDetail;
-    prompt = `The user just moved their idea "${d.title}" from "${d.previousStatus ?? 'unknown'}" to "${d.newStatus ?? 'unknown'}". Generate a nudge celebrating this progress.`;
+    const trackContext =
+      d.trackType !== undefined && d.trackType !== 'side_project'
+        ? ` (track: ${d.trackType.replace('_', ' ')})`
+        : '';
+    prompt = `The user just moved their item "${d.title}"${trackContext} from "${d.previousStatus ?? 'unknown'}" to "${d.newStatus ?? 'unknown'}". Generate a nudge celebrating this progress.`;
     nudgeType = 'status_changed';
     ideaId = d.ideaId;
   } else if (detailType === 'explore.path_saved') {

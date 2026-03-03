@@ -7,9 +7,9 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "launchpad",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#111114"
+      "backgroundColor": "#fefcf9"
     },
     "ios": {
       "supportsTablet": false,
@@ -22,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#111114",
+        "backgroundColor": "#fefcf9",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -42,7 +42,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#f59e0b"
+          "color": "#b87028"
         }
       ],
       "expo-mail-composer",

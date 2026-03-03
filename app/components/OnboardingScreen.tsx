@@ -24,21 +24,21 @@ const SLIDES: OnboardingSlide[] = [
     emoji: '\u{1F44B}',
     title: "Hey, I'm Adam",
     body: "I wanted to add a personal touch as to why this app has come into existence.\n\nI've been a software engineer just over 6 years, last September I was made redundant. The time off helped guide me to pursue what I really want to do, and its change career for the 3rd time before 35!\n\nIn my experience, there isn't a lot of guidance out there, if you want to change careers. It takes hours and hours just to even get remotely close to what you might be looking for.\n\nLaunchpad is here as a bit of a guide to help you get started, or even just give you some inspiration. It's not career advice, disclaimer, but it can hopefully give you that nudge to maybe pursue the career you really want, or make that app you've dreamt about creating...",
-    accent: colors.amber[500],
+    accent: colors.coral[400],
   },
   {
     id: 'why',
     emoji: '\u{1F4A1}',
     title: 'Why this exists',
     body: "Most idea apps are just lists. LaunchPad is different — it's a coach, a tracker, and a career explorer in one.\n\nIt's built for people of all ages who know they want to try something new, but just don't know where to start.",
-    accent: colors.amber[400],
+    accent: colors.status.spark,
   },
   {
     id: 'ideas',
     emoji: '\u{1F4DD}',
     title: 'Capture ideas',
     body: 'Drop any idea in your vault. Track it from spark to shipped.\n\nNo judgment. The only bad idea is the one you never wrote down.',
-    accent: colors.status.spark,
+    accent: colors.primary[400],
   },
   {
     id: 'coach',
@@ -52,14 +52,14 @@ const SLIDES: OnboardingSlide[] = [
     emoji: '\u{1F50D}',
     title: 'Explore paths',
     body: "Curious about a career change? Bob will help you explore, and if you allow notifications, will give you a nudge if you're stuck or if some time has passed and you need to follow up.",
-    accent: colors.blue[400],
+    accent: colors.primary[500],
   },
   {
     id: 'start',
     emoji: '\u{1F680}',
     title: "Let's go",
     body: "That's it.\n\nYour first idea is already in your head. Let's get it out, and start your journey.",
-    accent: colors.green[400],
+    accent: colors.primary[400],
   },
 ];
 
@@ -163,8 +163,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           <LinearGradient
             colors={
               isLastSlide
-                ? [colors.amber[400], colors.amber[500]]
-                : [colors.amber[500], colors.amber[400]]
+                ? [colors.primary[400], colors.primary[500]]
+                : [colors.coral[400], colors.primary[400]]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
-    color: colors.text.muted,
+    color: colors.coral[400],
   },
   slide: {
     width: SCREEN_WIDTH,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.display.italic,
     fontSize: 18,
     lineHeight: 28,
-    color: colors.amber[500],
+    color: colors.primary[500],
     marginTop: spacing.lg,
   },
   footer: {
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotActive: {
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     width: 24,
   },
   dotInactive: {

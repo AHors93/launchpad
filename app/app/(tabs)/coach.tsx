@@ -304,10 +304,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontFamily: fontFamily.mono.bold,
+    fontFamily: fontFamily.display.bold,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   subtitle: {
     fontFamily: fontFamily.mono.regular,
@@ -329,13 +329,13 @@ const styles = StyleSheet.create({
     borderColor: colors.border.medium,
   },
   saveButton: {
-    borderColor: colors.amber[300],
-    backgroundColor: colors.amber[100],
+    borderColor: colors.primary[300],
+    backgroundColor: colors.primary[100],
   },
   saveButtonText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   historyButtonText: {
     fontFamily: fontFamily.mono.regular,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     lineHeight: 22,
-    color: colors.text.secondary,
+    color: colors.coral[400],
     textAlign: 'center',
     marginBottom: spacing['2xl'],
   },
@@ -386,17 +386,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   linkedIdeaLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 11,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 12,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   linkedIdeaTitle: {
-    fontFamily: fontFamily.mono.bold,
-    fontSize: 12,
+    fontFamily: fontFamily.display.bold,
+    fontSize: 13,
     lineHeight: 18,
-    color: colors.amber[500],
+    color: colors.primary[500],
     flex: 1,
   },
   historyLink: {

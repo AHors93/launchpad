@@ -1,17 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
 import { AddIdeaSheet } from '@/components/ideas/AddIdeaSheet';
 import { IdeaCard } from '@/components/ideas/IdeaCard';
 import { StatsRow } from '@/components/ideas/StatsRow';
+import { TrackTypePill } from '@/components/ideas/TrackTypePill';
+import { TRACK_TYPES } from '@/constants/tracks';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useConversations } from '@/hooks/useCoach';
 import {
+  IdeaStats,
   useCreateIdea,
   useDeleteIdea,
   useIdeas,
@@ -19,17 +30,30 @@ import {
   useUpdateIdea,
 } from '@/hooks/useIdeas';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
-import { Idea, IdeaStatus } from '@/types/idea';
+import { Idea, IdeaStatus, TrackType } from '@/types/idea';
 import { hapticMedium } from '@/utils/haptics';
 
-const EMPTY_STATS = { total: 0, spark: 0, exploring: 0, building: 0, shipped: 0 };
+const EMPTY_STATS: IdeaStats = {
+  total: 0,
+  spark: 0,
+  exploring: 0,
+  building: 0,
+  shipped: 0,
+  byTrack: {} as Record<TrackType, number>,
+};
 
 function ListHeader({
   stats,
+  activeTrackFilter,
+  activeTracks,
+  onTrackFilter,
   onSettings,
   onBlog,
 }: {
-  stats: typeof EMPTY_STATS;
+  stats: IdeaStats;
+  activeTrackFilter: TrackType | undefined;
+  activeTracks: TrackType[];
+  onTrackFilter: (trackType: TrackType | undefined) => void;
   onSettings: () => void;
   onBlog: () => void;
 }) {
@@ -45,16 +69,51 @@ function ListHeader({
             <Ionicons name="settings-outline" size={24} color={colors.text.muted} />
           </Pressable>
         </View>
-        <Text style={styles.tagline}>Stop thinking. Start making.</Text>
+        <Text style={styles.tagline}>Stop thinking. Start creating.</Text>
       </View>
       <StatsRow stats={stats} />
+      {activeTracks.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          <Pressable
+            onPress={() => onTrackFilter(undefined)}
+            style={[styles.filterPill, activeTrackFilter === undefined && styles.filterPillActive]}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeTrackFilter === undefined && styles.filterPillTextActive,
+              ]}
+            >
+              All
+            </Text>
+          </Pressable>
+          {activeTracks.map((t) => (
+            <TrackTypePill
+              key={t}
+              trackType={t}
+              isActive={activeTrackFilter === t}
+              onPress={() => onTrackFilter(activeTrackFilter === t ? undefined : t)}
+            />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 export default function IdeasScreen() {
   const router = useRouter();
-  const { data: ideas, isLoading, refetch } = useIdeas();
+  const [trackFilter, setTrackFilter] = useState<TrackType | undefined>(undefined);
+  const { data: allIdeas } = useIdeas();
+  const {
+    data: ideas,
+    isLoading,
+    refetch,
+  } = useIdeas(trackFilter !== undefined ? { trackType: trackFilter } : undefined);
   const { data: stats } = useIdeaStats();
   const createIdea = useCreateIdea();
   const updateIdea = useUpdateIdea();
@@ -62,6 +121,12 @@ export default function IdeasScreen() {
   const { track } = useAnalytics();
   const { data: conversations } = useConversations();
   const sheetRef = useRef<BottomSheet>(null);
+
+  const activeTracks = useMemo(() => {
+    if (allIdeas === undefined) return [];
+    const tracks = new Set(allIdeas.map((i) => i.trackType ?? 'side_project'));
+    return TRACK_TYPES.filter((t) => tracks.has(t));
+  }, [allIdeas]);
 
   const handleOpenSettings = useCallback(() => {
     router.push('/settings');
@@ -77,11 +142,15 @@ export default function IdeasScreen() {
   }, []);
 
   const handleCreateIdea = useCallback(
-    (title: string) => {
+    (title: string, trackType: TrackType) => {
       createIdea.mutate(
-        { title },
+        { title, trackType },
         {
-          onSuccess: (idea) => track({ name: 'idea_created', properties: { ideaId: idea.ideaId } }),
+          onSuccess: (idea) =>
+            track({
+              name: 'idea_created',
+              properties: { ideaId: idea.ideaId, trackType },
+            }),
         },
       );
     },
@@ -152,17 +221,22 @@ export default function IdeasScreen() {
         <View style={styles.emptyContainer}>
           <ListHeader
             stats={resolvedStats}
+            activeTrackFilter={trackFilter}
+            activeTracks={activeTracks}
+            onTrackFilter={setTrackFilter}
             onSettings={handleOpenSettings}
             onBlog={handleOpenBlog}
           />
           {!isLoading && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>{'\u{1F4A1}'}</Text>
-              <Text style={styles.emptyTitle}>No ideas yet</Text>
+              <Text style={styles.emptyTitle}>
+                {trackFilter !== undefined ? 'Nothing here yet' : 'No ideas yet'}
+              </Text>
               <Text style={styles.emptyText}>
-                {
-                  "That's fine \u2014 everyone starts with zero.\nDrop your first one belo and see where it takes you."
-                }
+                {trackFilter !== undefined
+                  ? 'Add your first item to this track.'
+                  : "That's fine \u2014 everyone starts with zero.\nDrop your first one below and see where it takes you."}
               </Text>
             </View>
           )}
@@ -175,6 +249,9 @@ export default function IdeasScreen() {
           ListHeaderComponent={
             <ListHeader
               stats={resolvedStats}
+              activeTrackFilter={trackFilter}
+              activeTracks={activeTracks}
+              onTrackFilter={setTrackFilter}
               onSettings={handleOpenSettings}
               onBlog={handleOpenBlog}
             />
@@ -184,7 +261,7 @@ export default function IdeasScreen() {
             <RefreshControl
               refreshing={isLoading}
               onRefresh={() => void refetch()}
-              tintColor={colors.amber[500]}
+              tintColor={colors.primary[500]}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -211,7 +288,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing['2xl'],
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing['2xl'],
     alignItems: 'center',
   },
   headerTop: {
@@ -232,21 +309,45 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   brandLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 20,
+    fontFamily: fontFamily.display.bold,
+    fontSize: 22,
     lineHeight: 28,
-    color: colors.amber[500],
-    textTransform: 'uppercase',
-    letterSpacing: 3,
+    color: colors.primary[500],
+    letterSpacing: 0.5,
   },
   tagline: {
     fontFamily: fontFamily.display.bold,
     fontSize: 30,
     lineHeight: 38,
-    color: colors.amber[500],
+    color: colors.primary[500],
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
     letterSpacing: -0.5,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: spacing.lg,
+  },
+  filterPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
+  },
+  filterPillActive: {
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[500] + '22',
+  },
+  filterPillText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.text.muted,
+  },
+  filterPillTextActive: {
+    color: colors.primary[500],
   },
   list: {
     paddingBottom: 100,
@@ -271,7 +372,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fontFamily.display.regular,
     fontSize: 16,
-    color: colors.text.secondary,
+    color: colors.coral[400],
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -282,10 +383,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.amber[400],
+    shadowColor: colors.primary[400],
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

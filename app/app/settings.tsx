@@ -321,7 +321,7 @@ export default function SettingsScreen() {
         </View>
 
         <Pressable style={styles.feedbackButton} onPress={() => void handleFeedback()}>
-          <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.amber[500]} />
+          <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.purple[400]} />
           <Text style={styles.feedbackText}>Send feedback</Text>
         </Pressable>
 
@@ -433,8 +433,8 @@ function SettingRow({
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: colors.bg.input, true: colors.amber[300] }}
-        thumbColor={value ? colors.amber[500] : colors.text.muted}
+        trackColor={{ false: colors.bg.input, true: colors.purple[200] }}
+        thumbColor={value ? colors.purple[400] : colors.text.muted}
       />
     </View>
   );
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   screenTitle: {
-    fontFamily: fontFamily.mono.bold,
+    fontFamily: fontFamily.display.bold,
     fontSize: 16,
     color: colors.text.primary,
   },
@@ -469,12 +469,10 @@ const styles = StyleSheet.create({
     marginTop: spacing['2xl'],
   },
   sectionLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.md,
   },
   sectionHint: {
@@ -539,7 +537,7 @@ const styles = StyleSheet.create({
   savedIndicator: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 11,
-    color: colors.amber[500],
+    color: colors.purple[500],
   },
   profileInput: {
     fontFamily: fontFamily.display.regular,
@@ -571,8 +569,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.surface,
   },
   interestChipSelected: {
-    borderColor: colors.amber[400],
-    backgroundColor: colors.amber[100],
+    borderColor: colors.purple[300],
+    backgroundColor: colors.purple[100],
   },
   interestText: {
     fontFamily: fontFamily.mono.regular,
@@ -581,7 +579,7 @@ const styles = StyleSheet.create({
   },
   interestTextSelected: {
     fontFamily: fontFamily.mono.bold,
-    color: colors.amber[500],
+    color: colors.purple[400],
   },
   customInterestRow: {
     flexDirection: 'row',
@@ -605,12 +603,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.md,
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
   },
   customInterestButtonDisabled: {
-    backgroundColor: colors.amber[200],
+    backgroundColor: colors.primary[200],
   },
   customInterestButtonText: {
     fontSize: 20,
@@ -628,13 +626,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.amber[300],
-    backgroundColor: colors.amber[100],
+    borderColor: colors.purple[300],
+    backgroundColor: colors.purple[100],
   },
   feedbackText: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 14,
-    color: colors.amber[500],
+    color: colors.purple[400],
   },
   signOutButton: {
     marginHorizontal: spacing['2xl'],

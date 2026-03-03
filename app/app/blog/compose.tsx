@@ -193,11 +193,11 @@ const styles = StyleSheet.create({
   publishButton: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     borderRadius: radius.lg,
   },
   publishButtonDisabled: {
-    backgroundColor: colors.amber[200],
+    backgroundColor: colors.primary[200],
   },
   publishText: {
     fontFamily: fontFamily.mono.bold,
@@ -215,10 +215,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   fieldLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     color: colors.text.muted,
     marginBottom: spacing.sm,
     marginTop: spacing.xl,

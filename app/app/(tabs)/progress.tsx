@@ -4,13 +4,14 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
+import { TRACK_CONFIG } from '@/constants/tracks';
 import { useConversations } from '@/hooks/useCoach';
 import { useSearchHistory } from '@/hooks/useExplore';
 import { useIdeas, useIdeaStats } from '@/hooks/useIdeas';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { Conversation } from '@/types/coach';
 import { ExploreSearch } from '@/types/explore';
-import { Idea } from '@/types/idea';
+import { Idea, TrackType } from '@/types/idea';
 
 // ── Streak calculation ───────────────────────────────────────
 
@@ -85,7 +86,12 @@ function getMilestones(
   streak: number,
 ): Milestone[] {
   const totalMessages = conversations.reduce((sum, c) => sum + c.messages.length, 0);
-  const shippedCount = ideas.filter((i) => i.status === 'shipped').length;
+  const terminalCount = ideas.filter((i) => {
+    const track = i.trackType ?? 'side_project';
+    const config = TRACK_CONFIG[track];
+    return config.statuses.some((s) => s.value === i.status && s.isTerminal);
+  }).length;
+  const trackTypesUsed = new Set(ideas.map((i) => i.trackType ?? 'side_project'));
 
   return [
     { id: 'first-idea', label: 'First idea', icon: '\u{1F4A1}', unlocked: ideas.length >= 1 },
@@ -104,8 +110,19 @@ function getMilestones(
       icon: '\u{1F50D}',
       unlocked: searches.length >= 1,
     },
-    { id: 'first-shipped', label: 'First shipped', icon: '\u{1F680}', unlocked: shippedCount >= 1 },
-    { id: '3-shipped', label: '3 shipped', icon: '\u{2B50}', unlocked: shippedCount >= 3 },
+    {
+      id: 'first-completed',
+      label: 'First completed',
+      icon: '\u{1F680}',
+      unlocked: terminalCount >= 1,
+    },
+    { id: '3-completed', label: '3 completed', icon: '\u{2B50}', unlocked: terminalCount >= 3 },
+    {
+      id: 'multi-track',
+      label: '2+ track types',
+      icon: '\u{1F504}',
+      unlocked: trackTypesUsed.size >= 2,
+    },
     { id: 'streak-3', label: '3-day streak', icon: '\u{1F525}', unlocked: streak >= 3 },
     { id: 'streak-7', label: '7-day streak', icon: '\u{1F525}', unlocked: streak >= 7 },
   ];
@@ -123,7 +140,15 @@ export default function ProgressScreen() {
   const resolvedConversations = useMemo(() => conversations ?? [], [conversations]);
   const resolvedSearches = useMemo(() => searches ?? [], [searches]);
   const resolvedStats = useMemo(
-    () => stats ?? { total: 0, spark: 0, exploring: 0, building: 0, shipped: 0 },
+    () =>
+      stats ?? {
+        total: 0,
+        spark: 0,
+        exploring: 0,
+        building: 0,
+        shipped: 0,
+        byTrack: {} as Record<TrackType, number>,
+      },
     [stats],
   );
 
@@ -141,6 +166,8 @@ export default function ProgressScreen() {
     );
   }, [resolvedIdeas]);
 
+  const journeyDays = oldestIdea ? daysSince(oldestIdea.createdAt) : null;
+
   const milestones = useMemo(
     () => getMilestones(resolvedIdeas, resolvedConversations, resolvedSearches, streak),
     [resolvedIdeas, resolvedConversations, resolvedSearches, streak],
@@ -149,14 +176,46 @@ export default function ProgressScreen() {
   const unlockedCount = milestones.filter((m) => m.unlocked).length;
   const totalMessages = resolvedConversations.reduce((sum, c) => sum + c.messages.length, 0);
 
-  // Pipeline bar widths
-  const pipelineTotal = resolvedStats.total || 1;
-  const pipelineSegments = [
-    { label: 'Spark', count: resolvedStats.spark, color: colors.status.spark },
-    { label: 'Exploring', count: resolvedStats.exploring, color: colors.status.exploring },
-    { label: 'Building', count: resolvedStats.building, color: colors.status.building },
-    { label: 'Shipped', count: resolvedStats.shipped, color: colors.status.shipped },
-  ];
+  // Terminal count across all tracks
+  const terminalCount = useMemo(
+    () =>
+      resolvedIdeas.filter((i) => {
+        const track = i.trackType ?? 'side_project';
+        const config = TRACK_CONFIG[track];
+        return config.statuses.some((s) => s.value === i.status && s.isTerminal);
+      }).length,
+    [resolvedIdeas],
+  );
+
+  // Per-track pipeline breakdown
+  const trackPipelines = useMemo(() => {
+    const byTrack = {} as Record<
+      TrackType,
+      { label: string; segments: { label: string; count: number; color: string }[] }
+    >;
+
+    for (const idea of resolvedIdeas) {
+      const track = idea.trackType ?? 'side_project';
+      if (byTrack[track] === undefined) {
+        const config = TRACK_CONFIG[track];
+        byTrack[track] = {
+          label: config.label,
+          segments: config.statuses.map((s) => ({
+            label: s.label.replace(/^.*? /, ''),
+            count: 0,
+            color: s.color,
+          })),
+        };
+      }
+      const config = TRACK_CONFIG[track];
+      const statusIndex = config.statuses.findIndex((s) => s.value === idea.status);
+      if (statusIndex !== -1) {
+        byTrack[track].segments[statusIndex].count++;
+      }
+    }
+
+    return Object.entries(byTrack) as [TrackType, (typeof byTrack)[TrackType]][];
+  }, [resolvedIdeas]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -181,9 +240,9 @@ export default function ProgressScreen() {
           <View style={styles.heroDivider} />
           <View style={styles.heroStat}>
             <Text style={[styles.heroNumber, { color: colors.status.shipped }]}>
-              {resolvedStats.shipped}
+              {terminalCount}
             </Text>
-            <Text style={styles.heroLabel}>shipped</Text>
+            <Text style={styles.heroLabel}>completed</Text>
           </View>
         </Animated.View>
 
@@ -191,9 +250,14 @@ export default function ProgressScreen() {
         {oldestIdea !== undefined && (
           <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.journeyCard}>
             <Text style={styles.journeyText}>
-              {daysSince(oldestIdea.createdAt) === 0
-                ? 'You started your journey today'
-                : `${daysSince(oldestIdea.createdAt)} days on your journey`}
+              {journeyDays !== null && journeyDays > 0 && (
+                <Text style={styles.journeyDays}>{journeyDays} </Text>
+              )}
+              {journeyDays === null
+                ? ''
+                : journeyDays === 0
+                  ? 'You started your journey today'
+                  : `${journeyDays === 1 ? 'day' : 'days'} on your journey`}
             </Text>
             <Text style={styles.journeySubtext}>
               {totalMessages} messages with Bob {'\u00B7'} {resolvedSearches.length}{' '}
@@ -202,42 +266,53 @@ export default function ProgressScreen() {
           </Animated.View>
         )}
 
-        {/* Pipeline */}
+        {/* Where things are */}
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={styles.section}>
-          <Text style={styles.sectionLabel}>Idea pipeline</Text>
-          {resolvedStats.total > 0 ? (
-            <>
-              <View style={styles.pipelineBar}>
-                {pipelineSegments.map(
-                  (seg) =>
-                    seg.count > 0 && (
-                      <View
-                        key={seg.label}
-                        style={[
-                          styles.pipelineSegment,
-                          {
-                            flex: seg.count / pipelineTotal,
-                            backgroundColor: seg.color,
-                          },
-                        ]}
-                      />
-                    ),
-                )}
-              </View>
-              <View style={styles.pipelineLegend}>
-                {pipelineSegments.map((seg) => (
-                  <View key={seg.label} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: seg.color }]} />
-                    <Text style={styles.legendText}>
-                      {seg.label} ({seg.count})
-                    </Text>
+          <Text style={styles.sectionLabel}>Where things are</Text>
+          {trackPipelines.length > 0 ? (
+            trackPipelines.map(([trackType, pipeline]) => {
+              const total = pipeline.segments.reduce((sum, s) => sum + s.count, 0);
+              if (total === 0) return null;
+              return (
+                <View key={trackType} style={styles.trackPipeline}>
+                  <Text style={styles.trackPipelineLabel}>
+                    {TRACK_CONFIG[trackType].icon} {pipeline.label}
+                  </Text>
+                  <View style={styles.pipelineBar}>
+                    {pipeline.segments.map(
+                      (seg) =>
+                        seg.count > 0 && (
+                          <View
+                            key={seg.label}
+                            style={[
+                              styles.pipelineSegment,
+                              {
+                                flex: seg.count / total,
+                                backgroundColor: seg.color,
+                              },
+                            ]}
+                          />
+                        ),
+                    )}
                   </View>
-                ))}
-              </View>
-            </>
+                  <View style={styles.pipelineLegend}>
+                    {pipeline.segments
+                      .filter((seg) => seg.count > 0)
+                      .map((seg) => (
+                        <View key={seg.label} style={styles.legendItem}>
+                          <View style={[styles.legendDot, { backgroundColor: seg.color }]} />
+                          <Text style={styles.legendText}>
+                            {seg.label} ({seg.count})
+                          </Text>
+                        </View>
+                      ))}
+                  </View>
+                </View>
+              );
+            })
           ) : (
             <View style={styles.emptyPipeline}>
-              <Text style={styles.emptyText}>Add your first idea to see your pipeline</Text>
+              <Text style={styles.emptyText}>Add your first idea to see where things are</Text>
             </View>
           )}
         </Animated.View>
@@ -279,10 +354,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   screenTitle: {
-    fontFamily: fontFamily.mono.bold,
+    fontFamily: fontFamily.display.bold,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   screenSubtitle: {
     fontFamily: fontFamily.mono.regular,
@@ -313,7 +388,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.bold,
     fontSize: 32,
     lineHeight: 40,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   heroLabel: {
     fontFamily: fontFamily.mono.regular,
@@ -336,6 +411,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border.subtle,
     alignItems: 'center',
   },
+  journeyDays: {
+    fontFamily: fontFamily.display.bold,
+    fontSize: 22,
+    color: colors.coral[400],
+  },
   journeyText: {
     fontFamily: fontFamily.display.bold,
     fontSize: 18,
@@ -354,13 +434,20 @@ const styles = StyleSheet.create({
     marginTop: spacing['3xl'],
   },
   sectionLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.lg,
+  },
+  trackPipeline: {
+    marginBottom: spacing.xl,
+  },
+  trackPipelineLabel: {
+    fontFamily: fontFamily.mono.bold,
+    fontSize: 13,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
   },
   pipelineBar: {
     flexDirection: 'row',
@@ -416,7 +503,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.amber[300],
+    borderColor: colors.purple[300],
   },
   milestoneCardLocked: {
     borderColor: colors.border.subtle,

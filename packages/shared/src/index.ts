@@ -1,5 +1,5 @@
 // Types
-export type { Idea, IdeaNote, IdeaStatus } from './types/idea';
+export type { Idea, IdeaNote, IdeaStatus, TrackType } from './types/idea';
 export type { Conversation, Message, MessageRole, ConversationMode } from './types/conversation';
 export type { SavedPath, SearchResult, PathSuggestion } from './types/explore';
 export type { UserProfile, NotificationPreferences } from './types/user';
@@ -49,4 +49,14 @@ export { appleSignInSchema, type AppleSignInInput } from './validation/auth.sche
 
 // Constants
 export { IDEA_STATUSES, STATUS_LABELS, STATUS_COLORS } from './constants/statuses';
+export {
+  TRACK_TYPES,
+  TRACK_CONFIG,
+  ALL_STATUSES,
+  getTrackConfig,
+  isValidStatusForTrack,
+  getTerminalStatuses,
+  type StatusConfig,
+  type TrackConfig,
+} from './constants/tracks';
 export { IDEA_PROMPTS, COACH_SYSTEM_PROMPT } from './constants/prompts';

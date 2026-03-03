@@ -1,9 +1,15 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
+import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+
+interface StatusPillStatus {
+  value: string;
+  label: string;
+  color: string;
+}
 
 interface StatusPillProps {
-  status: (typeof statusConfig)[number];
+  status: StatusPillStatus;
   isActive: boolean;
   onPress: () => void;
 }

@@ -50,13 +50,20 @@ export interface ApiIdea {
   title: string;
   description?: string;
   status: string;
+  trackType?: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
 }
 
-export async function fetchIdeas(status?: string): Promise<ApiIdea[]> {
-  const query = status !== undefined ? `?status=${status}` : '';
+export async function fetchIdeas(options?: {
+  status?: string;
+  trackType?: string;
+}): Promise<ApiIdea[]> {
+  const params = new URLSearchParams();
+  if (options?.status !== undefined) params.set('status', options.status);
+  if (options?.trackType !== undefined) params.set('trackType', options.trackType);
+  const query = params.toString() !== '' ? `?${params.toString()}` : '';
   const data = await apiClient<{ ideas: ApiIdea[] }>(`/ideas${query}`);
   return data.ideas;
 }
@@ -65,6 +72,7 @@ export async function createIdeaApi(input: {
   title: string;
   description?: string;
   tags?: string[];
+  trackType?: string;
 }): Promise<ApiIdea> {
   return apiClient<ApiIdea>('/ideas', {
     method: 'POST',
@@ -74,7 +82,13 @@ export async function createIdeaApi(input: {
 
 export async function updateIdeaApi(
   ideaId: string,
-  updates: { title?: string; description?: string; status?: string; tags?: string[] },
+  updates: {
+    title?: string;
+    description?: string;
+    status?: string;
+    tags?: string[];
+    trackType?: string;
+  },
 ): Promise<void> {
   await apiClient(`/ideas/${ideaId}`, {
     method: 'PATCH',

@@ -6,12 +6,14 @@ export interface BaseEvent {
 export interface IdeaCreatedEvent extends BaseEvent {
   ideaId: string;
   title: string;
+  trackType?: string;
 }
 
 export interface IdeaStatusChangedEvent extends BaseEvent {
   ideaId: string;
   previousStatus: string;
   newStatus: string;
+  trackType?: string;
 }
 
 export interface StaleCheckEvent {

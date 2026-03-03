@@ -20,12 +20,12 @@ import { ExploreSearch } from '@/types/explore';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 const QUICK_PROMPTS = [
-  'How do I become a software engineer?',
   "What's it like to run a coffee shop?",
   'Electrician apprenticeship UK',
   'Product manager career path',
   'Starting a food truck business',
   'Freelance graphic designer',
+  'How do I become a software engineer?',
 ];
 
 function formatDate(d: string): string {
@@ -102,7 +102,7 @@ export default function ExploreScreen() {
           ref={inputRef}
           style={[
             styles.searchInput,
-            { borderColor: focused ? colors.green[400] + '66' : colors.border.medium },
+            { borderColor: focused ? colors.primary[400] + '66' : colors.border.medium },
           ]}
           placeholder="What are you curious about?"
           placeholderTextColor={colors.text.muted}
@@ -173,7 +173,9 @@ export default function ExploreScreen() {
             {/* Recent searches */}
             {history !== undefined && history.length > 0 && (
               <View style={styles.historySection}>
-                <Text style={styles.sectionLabel}>Recent searches</Text>
+                <Text style={[styles.sectionLabel, styles.sectionLabelPurple]}>
+                  Recent searches
+                </Text>
                 {history.map((search) => (
                   <Pressable
                     key={search.id}
@@ -228,10 +230,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   title: {
-    fontFamily: fontFamily.mono.bold,
+    fontFamily: fontFamily.display.bold,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   subtitle: {
     fontFamily: fontFamily.mono.regular,
@@ -259,21 +261,21 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   searchButton: {
-    backgroundColor: colors.green[400],
+    backgroundColor: colors.primary[400],
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.lg,
     borderRadius: radius.lg,
     justifyContent: 'center',
   },
   searchButtonDisabled: {
-    backgroundColor: colors.green[500],
+    backgroundColor: colors.primary[500],
     opacity: 0.5,
   },
   searchButtonText: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 15,
     lineHeight: 22,
-    color: '#ffffff',
+    color: colors.text.inverse,
   },
   scrollContent: {
     paddingBottom: 100,
@@ -287,20 +289,21 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.regular,
     fontSize: 13,
     lineHeight: 20,
-    color: colors.green[400],
+    color: colors.coral[400],
   },
   quickPromptsSection: {
     paddingHorizontal: spacing['2xl'],
     marginBottom: spacing['2xl'],
   },
   sectionLabel: {
-    fontFamily: fontFamily.mono.bold,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.md,
+  },
+  sectionLabelPurple: {
+    color: colors.purple[400],
   },
   quickPrompts: {
     flexDirection: 'row',
@@ -312,14 +315,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.green[400] + '33',
-    backgroundColor: colors.green[400] + '0d',
+    borderColor: colors.purple[300],
+    backgroundColor: colors.primary[50],
   },
   quickPromptText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
     lineHeight: 20,
-    color: colors.green[400],
+    color: colors.purple[400],
   },
   historySection: {
     paddingHorizontal: spacing['2xl'],

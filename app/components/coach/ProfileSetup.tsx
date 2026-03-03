@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.surface,
   },
   chipSelected: {
-    borderColor: colors.amber[400],
-    backgroundColor: colors.amber[100],
+    borderColor: colors.primary[400],
+    backgroundColor: colors.primary[100],
   },
   chipText: {
     fontFamily: fontFamily.mono.regular,
@@ -202,17 +202,17 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     fontFamily: fontFamily.mono.bold,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   submitButton: {
     marginTop: spacing['2xl'],
     paddingVertical: spacing.lg,
     borderRadius: radius.md,
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     alignItems: 'center',
   },
   submitButtonDisabled: {
-    backgroundColor: colors.amber[200],
+    backgroundColor: colors.primary[200],
   },
   submitText: {
     fontFamily: fontFamily.mono.bold,

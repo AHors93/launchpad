@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   author: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 12,
-    color: colors.amber[500],
+    color: colors.primary[500],
     marginBottom: spacing['2xl'],
   },
   postImage: {
@@ -218,12 +218,10 @@ const styles = StyleSheet.create({
     marginVertical: spacing['3xl'],
   },
   commentsTitle: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
-    lineHeight: 18,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.lg,
   },
   noComments: {
@@ -259,6 +257,6 @@ const styles = StyleSheet.create({
   notFoundBack: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
 });

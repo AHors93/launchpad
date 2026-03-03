@@ -9,8 +9,8 @@ export const BLOG_CATEGORY_CONFIG: {
   label: string;
   color: string;
 }[] = [
-  { value: 'update', label: 'Update', color: colors.amber[500] },
+  { value: 'update', label: 'Update', color: colors.primary[500] },
   { value: 'idea', label: 'Idea', color: colors.purple[400] },
   { value: 'devlog', label: 'Dev Log', color: colors.blue[400] },
-  { value: 'reflection', label: 'Reflection', color: colors.green[400] },
+  { value: 'reflection', label: 'Reflection', color: colors.coral[400] },
 ];

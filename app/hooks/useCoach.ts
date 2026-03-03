@@ -190,10 +190,7 @@ export function useSendMessage() {
               c.id === conversationId
                 ? {
                     ...c,
-                    messages: [
-                      ...c.messages.filter((m) => !m.id.startsWith('temp-')),
-                      streamingMessage,
-                    ],
+                    messages: [...c.messages, streamingMessage],
                     updatedAt: new Date().toISOString(),
                   }
                 : c,
@@ -480,17 +477,24 @@ export function useIdeaLinking(
 
       // Load messages from API if not already in cache
       if (useApi && existingConvo.messages.length === 0) {
-        void fetchMessagesApi(existingConvo.id).then((apiMessages) => {
-          const messages: ChatMessage[] = apiMessages.map((m) => ({
-            id: m.messageId,
-            role: m.role,
-            content: m.content,
-            createdAt: m.timestamp,
-          }));
-          queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
-            (old ?? []).map((c) => (c.id === existingConvo.id ? { ...c, messages } : c)),
-          );
-        });
+        void fetchMessagesApi(existingConvo.id)
+          .then((apiMessages) => {
+            const messages: ChatMessage[] = apiMessages.map((m) => ({
+              id: m.messageId,
+              role: m.role,
+              content: m.content,
+              createdAt: m.timestamp,
+            }));
+            queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+              (old ?? []).map((c) => (c.id === existingConvo.id ? { ...c, messages } : c)),
+            );
+          })
+          .catch(() => {
+            // Conversation deleted on backend — remove from cache
+            queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+              (old ?? []).filter((c) => c.id !== existingConvo.id),
+            );
+          });
       }
 
       clearParams();
@@ -524,17 +528,24 @@ export function useLoadMessages(conversation: Conversation | undefined) {
     if (!useApi) return;
     if (convoId === undefined || hasMessages) return;
 
-    void fetchMessagesApi(convoId).then((apiMessages) => {
-      const messages: ChatMessage[] = apiMessages.map((m) => ({
-        id: m.messageId,
-        role: m.role,
-        content: m.content,
-        createdAt: m.timestamp,
-      }));
-      queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
-        (old ?? []).map((c) => (c.id === convoId ? { ...c, messages } : c)),
-      );
-    });
+    void fetchMessagesApi(convoId)
+      .then((apiMessages) => {
+        const messages: ChatMessage[] = apiMessages.map((m) => ({
+          id: m.messageId,
+          role: m.role,
+          content: m.content,
+          createdAt: m.timestamp,
+        }));
+        queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+          (old ?? []).map((c) => (c.id === convoId ? { ...c, messages } : c)),
+        );
+      })
+      .catch(() => {
+        // Conversation no longer exists on backend — remove from cache
+        queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+          (old ?? []).filter((c) => c.id !== convoId),
+        );
+      });
   }, [convoId, hasMessages, queryClient]);
 }
 

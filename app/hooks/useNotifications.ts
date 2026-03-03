@@ -11,7 +11,6 @@ import { apiClient, isBackendConfigured } from '@/services/api';
 Notifications.setNotificationHandler({
   handleNotification: () =>
     Promise.resolve({
-      shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
       shouldShowBanner: true,
@@ -41,7 +40,7 @@ async function registerForPushNotifications(): Promise<string | null> {
       name: 'LaunchPad',
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#f59e0b',
+      lightColor: '#b87028',
     });
   }
 

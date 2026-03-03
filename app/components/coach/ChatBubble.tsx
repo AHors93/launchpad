@@ -163,13 +163,8 @@ const styles = StyleSheet.create({
   },
   coachBubble: {
     backgroundColor: colors.bg.surfacePressed,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
   },
-  userGradient: {
-    borderWidth: 1,
-    borderColor: '#2a1f3d',
-  },
+  userGradient: {},
   coachLabel: {
     ...typography.chatLabel,
     marginBottom: spacing.sm,
@@ -187,10 +182,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: colors.amber[100],
+    backgroundColor: colors.purple[100],
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.amber[300],
+    borderColor: colors.purple[300],
   },
   actionIcon: {
     fontSize: 16,
@@ -198,7 +193,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 12,
-    color: colors.amber[500],
+    color: colors.purple[400],
     flex: 1,
   },
   dotsRow: {

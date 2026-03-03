@@ -43,8 +43,8 @@ export function ExploreResultCard({ result }: ExploreResultCardProps) {
       <Text style={styles.title}>{result.title}</Text>
 
       <View style={styles.quickStats}>
-        <Tag text={result.salaryRange} color={colors.green[400]} />
-        <Tag text={result.timeframe} color={colors.blue[400]} />
+        <Tag text={result.salaryRange} color={colors.primary[400]} />
+        <Tag text={result.timeframe} color={colors.coral[400]} />
       </View>
 
       <Section title="Overview">
@@ -70,7 +70,7 @@ export function ExploreResultCard({ result }: ExploreResultCardProps) {
 
       <View style={styles.prosConsRow}>
         <View style={styles.prosConsCol}>
-          <Text style={[styles.sectionTitle, { color: colors.green[400] }]}>Pros</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary[400] }]}>Pros</Text>
           <BulletList items={result.pros} />
         </View>
         <View style={styles.prosConsDivider} />
@@ -87,11 +87,9 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: spacing['2xl'],
     marginTop: spacing.md,
-    marginBottom: spacing['3xl'],
+    marginBottom: spacing.md,
     padding: spacing['2xl'],
     borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
     backgroundColor: colors.bg.surface,
   },
   title: {
@@ -122,12 +120,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontFamily: fontFamily.mono.bold,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.sm,
   },
   bodyText: {
@@ -148,7 +144,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.green[400] + '22',
+    backgroundColor: colors.primary[400] + '22',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
@@ -156,7 +152,7 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 12,
-    color: colors.green[400],
+    color: colors.primary[400],
   },
   stepText: {
     flex: 1,

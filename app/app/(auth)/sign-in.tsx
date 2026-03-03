@@ -175,21 +175,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border.medium,
   },
   dividerText: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
+    fontFamily: fontFamily.display.medium,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
     paddingHorizontal: spacing.lg,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   brandLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 13,
+    fontFamily: fontFamily.display.bold,
+    fontSize: 14,
     lineHeight: 20,
-    color: colors.amber[500],
-    textTransform: 'uppercase',
-    letterSpacing: 3,
+    color: colors.primary[500],
+    letterSpacing: 0.5,
     marginBottom: spacing.lg,
   },
   title: {
@@ -212,12 +209,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   input: {
     fontFamily: fontFamily.display.regular,
@@ -232,14 +227,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   submitButton: {
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     paddingVertical: spacing.xl,
     borderRadius: radius.md,
     alignItems: 'center',
     marginTop: spacing.md,
   },
   submitButtonDisabled: {
-    backgroundColor: colors.amber[200],
+    backgroundColor: colors.primary[200],
   },
   submitText: {
     fontFamily: fontFamily.mono.bold,
@@ -265,6 +260,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.bold,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.amber[500],
+    color: colors.coral[400],
   },
 });

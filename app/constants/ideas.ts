@@ -1,17 +1,23 @@
-import { IdeaStatus } from '@/types/idea';
+import { TRACK_CONFIG } from '@/constants/tracks';
+import type { IdeaStatus } from '@/types/idea';
 
-export const STATUS_LABELS: Record<IdeaStatus, string> = {
-  spark: '💡 Spark',
-  exploring: '🔍 Exploring',
-  building: '🔨 Building',
-  shipped: '🚀 Shipped',
+// Backwards-compatible exports derived from side_project track
+const sideProjectStatuses = TRACK_CONFIG.side_project.statuses;
+
+type SideProjectStatus = 'spark' | 'exploring' | 'building' | 'shipped';
+
+export const STATUS_LABELS: Record<SideProjectStatus, string> = {
+  spark: sideProjectStatuses[0].label,
+  exploring: sideProjectStatuses[1].label,
+  building: sideProjectStatuses[2].label,
+  shipped: sideProjectStatuses[3].label,
 };
 
-export const STATUS_COLORS: Record<IdeaStatus, string> = {
-  spark: '#f59e0b',
-  exploring: '#8b5cf6',
-  building: '#3b82f6',
-  shipped: '#10b981',
+export const STATUS_COLORS: Record<SideProjectStatus, string> = {
+  spark: sideProjectStatuses[0].color,
+  exploring: sideProjectStatuses[1].color,
+  building: sideProjectStatuses[2].color,
+  shipped: sideProjectStatuses[3].color,
 };
 
 export const IDEA_STATUSES: IdeaStatus[] = ['spark', 'exploring', 'building', 'shipped'];

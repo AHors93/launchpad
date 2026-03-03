@@ -49,12 +49,10 @@ export function BlogPostCard({ post, commentCount, index, onPress }: BlogPostCar
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: spacing['2xl'],
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     padding: spacing.xl,
     backgroundColor: colors.bg.surface,
     borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
   },
   topRow: {
     flexDirection: 'row',

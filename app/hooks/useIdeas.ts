@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { Alert } from 'react-native';
 
+import { getTrackConfig } from '@/constants/tracks';
 import {
   createIdeaApi,
   deleteIdeaApi,
@@ -10,7 +11,7 @@ import {
   isBackendConfigured,
   updateIdeaApi,
 } from '@/services/api';
-import { Idea, IdeaStatus } from '@/types/idea';
+import { Idea, IdeaStatus, TrackType } from '@/types/idea';
 
 const STORAGE_KEY = 'launchpad_ideas';
 const useApi = isBackendConfigured();
@@ -28,6 +29,7 @@ async function loadIdeas(): Promise<Idea[]> {
       title: i.title,
       description: i.description,
       status: i.status as IdeaStatus,
+      trackType: (i.trackType as TrackType | undefined) ?? 'side_project',
       tags: i.tags,
       createdAt: i.createdAt,
       updatedAt: i.updatedAt,
@@ -35,7 +37,9 @@ async function loadIdeas(): Promise<Idea[]> {
   }
   const data = await AsyncStorage.getItem(STORAGE_KEY);
   if (data === null || data === '') return [];
-  return JSON.parse(data) as Idea[];
+  const ideas = JSON.parse(data) as Idea[];
+  // Lazy backfill: default missing trackType to 'side_project'
+  return ideas.map((i) => ({ ...i, trackType: i.trackType ?? 'side_project' }));
 }
 
 async function saveIdeas(ideas: Idea[]): Promise<void> {
@@ -44,13 +48,24 @@ async function saveIdeas(ideas: Idea[]): Promise<void> {
 
 // ── Queries (all derive from the same cache via `select`) ──
 
-export function useIdeas(statusFilter?: IdeaStatus) {
+export function useIdeas(filters?: { statusFilter?: IdeaStatus; trackType?: TrackType }) {
   return useQuery({
     queryKey: ideaKeys.all,
     queryFn: loadIdeas,
     select:
-      statusFilter !== undefined
-        ? (ideas: Idea[]) => ideas.filter((i) => i.status === statusFilter)
+      filters !== undefined
+        ? (ideas: Idea[]) => {
+            let filtered = ideas;
+            if (filters.statusFilter !== undefined) {
+              filtered = filtered.filter((i) => i.status === filters.statusFilter);
+            }
+            if (filters.trackType !== undefined) {
+              filtered = filtered.filter(
+                (i) => (i.trackType ?? 'side_project') === filters.trackType,
+              );
+            }
+            return filtered;
+          }
         : undefined,
   });
 }
@@ -70,19 +85,30 @@ export interface IdeaStats {
   exploring: number;
   building: number;
   shipped: number;
+  byTrack: Record<TrackType, number>;
 }
 
 export function useIdeaStats() {
   return useQuery({
     queryKey: ideaKeys.all,
     queryFn: loadIdeas,
-    select: (ideas: Idea[]): IdeaStats => ({
-      total: ideas.length,
-      spark: ideas.filter((i) => i.status === 'spark').length,
-      exploring: ideas.filter((i) => i.status === 'exploring').length,
-      building: ideas.filter((i) => i.status === 'building').length,
-      shipped: ideas.filter((i) => i.status === 'shipped').length,
-    }),
+    select: (ideas: Idea[]): IdeaStats => {
+      const byTrack = {} as Record<TrackType, number>;
+      for (const idea of ideas) {
+        const track = idea.trackType ?? 'side_project';
+        byTrack[track] = (byTrack[track] ?? 0) + 1;
+      }
+
+      return {
+        total: ideas.length,
+        // Backwards-compatible counts for side_project statuses
+        spark: ideas.filter((i) => i.status === 'spark').length,
+        exploring: ideas.filter((i) => i.status === 'exploring').length,
+        building: ideas.filter((i) => i.status === 'building').length,
+        shipped: ideas.filter((i) => i.status === 'shipped').length,
+        byTrack,
+      };
+    },
   });
 }
 
@@ -92,14 +118,26 @@ export function useCreateIdea() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ title, description }: { title: string; description?: string }) => {
+    mutationFn: async ({
+      title,
+      description,
+      trackType,
+    }: {
+      title: string;
+      description?: string;
+      trackType?: TrackType;
+    }) => {
+      const track = trackType ?? 'side_project';
+      const trackConfig = getTrackConfig(track);
+
       if (useApi) {
-        const apiIdea = await createIdeaApi({ title, description });
+        const apiIdea = await createIdeaApi({ title, description, trackType: track });
         return {
           ideaId: apiIdea.ideaId,
           title: apiIdea.title,
           description: apiIdea.description,
           status: apiIdea.status as IdeaStatus,
+          trackType: (apiIdea.trackType as TrackType | undefined) ?? track,
           tags: apiIdea.tags,
           createdAt: apiIdea.createdAt,
           updatedAt: apiIdea.updatedAt,
@@ -111,7 +149,8 @@ export function useCreateIdea() {
         ideaId: Crypto.randomUUID(),
         title,
         description,
-        status: 'spark',
+        status: trackConfig.defaultStatus,
+        trackType: track,
         tags: [],
         createdAt: now,
         updatedAt: now,
@@ -120,15 +159,18 @@ export function useCreateIdea() {
       await saveIdeas(ideas);
       return newIdea;
     },
-    onMutate: async ({ title, description }) => {
+    onMutate: async ({ title, description, trackType }) => {
       await queryClient.cancelQueries({ queryKey: ideaKeys.all });
       const previous = queryClient.getQueryData<Idea[]>(ideaKeys.all);
+      const track = trackType ?? 'side_project';
+      const trackConfig = getTrackConfig(track);
       const now = new Date().toISOString();
       const optimistic: Idea = {
         ideaId: `temp-${Date.now()}`,
         title,
         description,
-        status: 'spark',
+        status: trackConfig.defaultStatus,
+        trackType: track,
         tags: [],
         createdAt: now,
         updatedAt: now,
@@ -157,7 +199,7 @@ export function useUpdateIdea() {
       updates,
     }: {
       ideaId: string;
-      updates: Partial<Pick<Idea, 'title' | 'description' | 'status' | 'tags'>>;
+      updates: Partial<Pick<Idea, 'title' | 'description' | 'status' | 'tags' | 'trackType'>>;
     }) => {
       if (useApi) {
         await updateIdeaApi(ideaId, updates);

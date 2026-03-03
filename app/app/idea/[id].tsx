@@ -7,9 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
 import { StatusPill } from '@/components/StatusPill';
+import { getStatusesForTrack } from '@/constants/tracks';
 import { useDeleteIdea, useIdea, useUpdateIdea } from '@/hooks/useIdeas';
-import { colors, fontFamily, radius, spacing, statusConfig } from '@/theme/tokens';
-import { IdeaStatus } from '@/types/idea';
+import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { IdeaStatus, TrackType } from '@/types/idea';
 import { hapticLight, hapticSuccess, hapticWarning } from '@/utils/haptics';
 
 export default function IdeaDetailScreen() {
@@ -70,7 +71,9 @@ export default function IdeaDetailScreen() {
     );
   }
 
-  const statusObj = statusConfig.find((s) => s.value === idea.status) ?? statusConfig[0];
+  const trackType: TrackType = idea.trackType ?? 'side_project';
+  const trackStatuses = getStatusesForTrack(trackType);
+  const statusObj = trackStatuses.find((s) => s.value === idea.status) ?? trackStatuses[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -98,7 +101,7 @@ export default function IdeaDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Status</Text>
           <View style={styles.statusRow}>
-            {statusConfig.map((s) => (
+            {trackStatuses.map((s) => (
               <StatusPill
                 key={s.value}
                 status={s}
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
   notFoundButtonText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   section: {
     marginTop: spacing['3xl'],
@@ -249,17 +252,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
     marginBottom: spacing.sm,
   },
   editButton: {
-    fontFamily: fontFamily.mono.regular,
+    fontFamily: fontFamily.display.semiBold,
     fontSize: 13,
-    color: colors.amber[500],
+    color: colors.primary[500],
     marginBottom: spacing.sm,
   },
   statusRow: {
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   saveButton: {
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     paddingVertical: 10,
     borderRadius: radius.md,
     alignItems: 'center',
@@ -313,6 +314,6 @@ const styles = StyleSheet.create({
   coachButtonText: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 15,
-    color: '#ffffff',
+    color: colors.text.inverse,
   },
 });

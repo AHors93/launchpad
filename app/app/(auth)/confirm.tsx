@@ -120,12 +120,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing['4xl'],
   },
   brandLabel: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 13,
+    fontFamily: fontFamily.display.bold,
+    fontSize: 14,
     lineHeight: 20,
-    color: colors.amber[500],
-    textTransform: 'uppercase',
-    letterSpacing: 3,
+    color: colors.primary[500],
+    letterSpacing: 0.5,
     marginBottom: spacing.lg,
   },
   title: {
@@ -149,12 +148,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 12,
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   codeInput: {
     fontFamily: fontFamily.mono.bold,
@@ -168,17 +165,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     textAlign: 'center',
-    letterSpacing: 8,
+    letterSpacing: 4,
   },
   submitButton: {
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     paddingVertical: spacing.xl,
     borderRadius: radius.md,
     alignItems: 'center',
     marginTop: spacing.md,
   },
   submitButtonDisabled: {
-    backgroundColor: colors.amber[200],
+    backgroundColor: colors.primary[200],
   },
   submitText: {
     fontFamily: fontFamily.mono.bold,
@@ -204,6 +201,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.mono.bold,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.amber[500],
+    color: colors.coral[400],
   },
 });

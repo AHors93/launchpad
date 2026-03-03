@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { createIdeaSchema } from '@launchpad/shared';
+import { createIdeaSchema, getTrackConfig } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
 import { emitEvent } from '../../shared/eventbridge-client';
@@ -12,6 +12,9 @@ export const handler = withErrorHandling(async (event) => {
   const input = createIdeaSchema.parse(parseBody(event));
   const ideaId = randomUUID();
   const now = new Date().toISOString();
+  const trackType = input.trackType ?? 'side_project';
+  const trackConfig = getTrackConfig(trackType);
+  const status = trackConfig.defaultStatus;
 
   const idea = {
     PK: `USER#${userId}`,
@@ -20,11 +23,12 @@ export const handler = withErrorHandling(async (event) => {
     userId,
     title: input.title,
     description: input.description,
-    status: 'spark' as const,
+    status,
+    trackType,
     tags: input.tags,
     createdAt: now,
     updatedAt: now,
-    GSI1PK: 'STATUS#spark',
+    GSI1PK: `STATUS#${trackType}#${status}`,
     GSI1SK: `UPDATED#${now}`,
   };
 
@@ -34,6 +38,7 @@ export const handler = withErrorHandling(async (event) => {
     userId,
     ideaId,
     title: input.title,
+    trackType,
     timestamp: now,
   });
 
@@ -41,7 +46,9 @@ export const handler = withErrorHandling(async (event) => {
     {
       ideaId,
       title: input.title,
-      status: 'spark',
+      description: input.description,
+      status,
+      trackType,
       tags: input.tags,
       createdAt: now,
       updatedAt: now,

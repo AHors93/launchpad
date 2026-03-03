@@ -66,11 +66,11 @@ const styles = StyleSheet.create({
   button: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    backgroundColor: colors.amber[500],
+    backgroundColor: colors.primary[500],
     borderRadius: radius.lg,
   },
   buttonDisabled: {
-    backgroundColor: colors.amber[200],
+    backgroundColor: colors.primary[200],
   },
   buttonText: {
     fontFamily: fontFamily.mono.bold,

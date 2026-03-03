@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: colors.text.inverse,
   },
   sendButtonTextDisabled: {
     color: colors.text.muted,

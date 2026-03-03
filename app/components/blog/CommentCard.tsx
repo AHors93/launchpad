@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   author: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 12,
-    color: colors.amber[500],
+    color: colors.primary[500],
   },
   headerRight: {
     flexDirection: 'row',

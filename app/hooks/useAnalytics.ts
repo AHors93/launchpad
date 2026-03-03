@@ -2,7 +2,7 @@ import { usePostHog } from 'posthog-react-native';
 import { useCallback } from 'react';
 
 type AnalyticsEvent =
-  | { name: 'idea_created'; properties: { ideaId: string } }
+  | { name: 'idea_created'; properties: { ideaId: string; trackType?: string } }
   | { name: 'idea_deleted'; properties: { ideaId: string } }
   | { name: 'idea_status_changed'; properties: { ideaId: string; status: string } }
   | { name: 'idea_title_edited'; properties: { ideaId: string } }

@@ -47,9 +47,6 @@ export default function TabLayout() {
                     <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                       {meta.label}
                     </Text>
-                    <Text style={[styles.tabDesc, isActive && styles.tabDescActive]}>
-                      {meta.desc}
-                    </Text>
                   </Pressable>
                 );
               })}
@@ -77,7 +74,7 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     gap: spacing.xs,
-    backgroundColor: colors.bg.input,
+    backgroundColor: colors.bg.surfacePressed,
     borderRadius: radius.xl,
     padding: spacing.xs,
   },
@@ -89,7 +86,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: colors.amber[100],
+    backgroundColor: colors.primary[100],
   },
   tabIcon: {
     fontSize: 20,
@@ -97,26 +94,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   tabLabel: {
-    fontFamily: fontFamily.mono.regular,
+    fontFamily: fontFamily.display.medium,
     fontSize: 12,
     lineHeight: 16,
     color: colors.text.muted,
     textAlign: 'center',
   },
   tabLabelActive: {
-    fontFamily: fontFamily.mono.bold,
-    color: colors.amber[500],
-  },
-  tabDesc: {
-    fontFamily: fontFamily.mono.regular,
-    fontSize: 10,
-    lineHeight: 14,
-    color: colors.text.muted,
-    opacity: 0.6,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  tabDescActive: {
-    color: colors.amber[500],
+    fontFamily: fontFamily.display.bold,
+    color: colors.primary[600],
   },
 });
