@@ -4,10 +4,12 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
+import { TaskRow } from '@/components/tasks/TaskRow';
 import { TRACK_CONFIG } from '@/constants/tracks';
 import { useConversations } from '@/hooks/useCoach';
 import { useSearchHistory } from '@/hooks/useExplore';
 import { useIdeas, useIdeaStats } from '@/hooks/useIdeas';
+import { useDeleteTask, useUpdateTask, useUpcomingTasks } from '@/hooks/useTasks';
 import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { Conversation } from '@/types/coach';
 import { ExploreSearch } from '@/types/explore';
@@ -135,6 +137,9 @@ export default function ProgressScreen() {
   const { data: stats } = useIdeaStats();
   const { data: conversations } = useConversations();
   const { data: searches } = useSearchHistory();
+  const { data: upcomingTasks } = useUpcomingTasks();
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
 
   const resolvedIdeas = useMemo(() => ideas ?? [], [ideas]);
   const resolvedConversations = useMemo(() => conversations ?? [], [conversations]);
@@ -263,6 +268,26 @@ export default function ProgressScreen() {
               {totalMessages} messages with Bob {'\u00B7'} {resolvedSearches.length}{' '}
               {resolvedSearches.length === 1 ? 'path' : 'paths'} explored
             </Text>
+          </Animated.View>
+        )}
+
+        {/* Upcoming tasks */}
+        {upcomingTasks !== undefined && upcomingTasks.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(250).duration(400)} style={styles.section}>
+            <Text style={styles.sectionLabel}>Upcoming tasks</Text>
+            {upcomingTasks.map((task) => (
+              <TaskRow
+                key={task.taskId}
+                task={task}
+                onToggle={(id) =>
+                  updateTask.mutate({
+                    taskId: id,
+                    updates: { status: task.status === 'done' ? 'pending' : 'done' },
+                  })
+                }
+                onDelete={(id) => deleteTask.mutate(id)}
+              />
+            ))}
           </Animated.View>
         )}
 

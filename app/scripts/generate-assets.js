@@ -13,7 +13,7 @@ const SLATE = '#2d2319';
 
 const ASSETS_DIR = path.join(__dirname, '..', 'assets', 'images');
 
-// Register font (Inter is not available as .ttf locally, use system fallback)
+// Register font
 const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'SpaceMono-Regular.ttf');
 if (fs.existsSync(fontPath)) {
   GlobalFonts.registerFromPath(fontPath, 'SpaceMono');
@@ -21,57 +21,31 @@ if (fs.existsSync(fontPath)) {
 
 // ── Drawing helpers ──────────────────────────────────────
 
-function drawChevron(ctx, cx, cy, size, color) {
-  const armLength = size * 0.42;
-  const thickness = size * 0.1;
-  const angle = Math.PI / 5;
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = thickness;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  ctx.beginPath();
-  ctx.moveTo(-Math.sin(angle) * armLength, Math.cos(angle) * armLength * 0.6);
-  ctx.lineTo(0, -armLength * 0.5);
-  ctx.lineTo(Math.sin(angle) * armLength, Math.cos(angle) * armLength * 0.6);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
 function drawGlow(ctx, cx, cy, size, glowColor) {
-  const gradient = ctx.createRadialGradient(cx, cy - size * 0.1, 0, cx, cy, size * 0.6);
+  const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.6);
   gradient.addColorStop(0, glowColor || AMBER_GLOW);
   gradient.addColorStop(1, 'transparent');
   ctx.fillStyle = gradient;
   ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
 }
 
-function drawTrail(ctx, cx, cy, size, color) {
-  const trailTop = cy + size * 0.2;
-  const trailBottom = cy + size * 0.42;
-  const trailWidth = size * 0.04;
-  const gap = size * 0.08;
-
+function drawWordmark(ctx, cx, cy, fontSize, color) {
   ctx.save();
-  ctx.lineCap = 'round';
+  ctx.font = `bold ${fontSize}px SpaceMono, monospace`;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('LP', cx, cy);
+  ctx.restore();
+}
 
-  for (let i = -1; i <= 1; i++) {
-    const x = cx + i * gap;
-    const gradient = ctx.createLinearGradient(x, trailTop, x, trailBottom);
-    gradient.addColorStop(0, color);
-    gradient.addColorStop(1, 'transparent');
-    ctx.strokeStyle = gradient;
-    ctx.lineWidth = trailWidth;
-    ctx.beginPath();
-    ctx.moveTo(x, trailTop);
-    ctx.lineTo(x, trailBottom);
-    ctx.stroke();
-  }
-
+function drawFullWordmark(ctx, cx, cy, fontSize, color) {
+  ctx.save();
+  ctx.font = `bold ${fontSize}px SpaceMono, monospace`;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('LaunchPad', cx, cy);
   ctx.restore();
 }
 
@@ -86,14 +60,11 @@ function generateIcon() {
   ctx.fillStyle = WHITE;
   ctx.fillRect(0, 0, size, size);
 
-  // Subtle glow
-  drawGlow(ctx, size / 2, size / 2 - 20, size * 0.5, '#e8913a18');
+  // Subtle glow behind text
+  drawGlow(ctx, size / 2, size / 2, size * 0.5, '#e8913a18');
 
-  // Main chevron in teal
-  drawChevron(ctx, size / 2, size / 2 - 20, size * 0.55, AMBER);
-
-  // Exhaust trail
-  drawTrail(ctx, size / 2, size / 2 - 20, size * 0.55, AMBER + '66');
+  // LP wordmark
+  drawWordmark(ctx, size / 2, size / 2, size * 0.42, AMBER);
 
   const buffer = canvas.toBuffer('image/png');
   fs.writeFileSync(path.join(ASSETS_DIR, 'icon.png'), buffer);
@@ -105,8 +76,8 @@ function generateAdaptiveIconForeground() {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
 
-  drawChevron(ctx, size / 2, size / 2 - 15, size * 0.4, AMBER);
-  drawTrail(ctx, size / 2, size / 2 - 15, size * 0.4, AMBER + '66');
+  // LP wordmark (scaled for safe zone)
+  drawWordmark(ctx, size / 2, size / 2, size * 0.32, AMBER);
 
   const buffer = canvas.toBuffer('image/png');
   fs.writeFileSync(path.join(ASSETS_DIR, 'android-icon-foreground.png'), buffer);
@@ -133,7 +104,7 @@ function generateMonochrome() {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
 
-  drawChevron(ctx, size / 2, size / 2 - 15, size * 0.4, SLATE);
+  drawWordmark(ctx, size / 2, size / 2, size * 0.32, SLATE);
 
   const buffer = canvas.toBuffer('image/png');
   fs.writeFileSync(path.join(ASSETS_DIR, 'android-icon-monochrome.png'), buffer);
@@ -148,7 +119,7 @@ function generateFavicon() {
   ctx.fillStyle = WHITE;
   ctx.fillRect(0, 0, size, size);
 
-  drawChevron(ctx, size / 2, size / 2 - 1, size * 0.55, AMBER);
+  drawWordmark(ctx, size / 2, size / 2, size * 0.42, AMBER);
 
   const buffer = canvas.toBuffer('image/png');
   fs.writeFileSync(path.join(ASSETS_DIR, 'favicon.png'), buffer);
@@ -164,19 +135,11 @@ function generateSplashIcon() {
   ctx.fillStyle = LIGHT_BG;
   ctx.fillRect(0, 0, size, size);
 
-  // Chevron above text
-  drawGlow(ctx, size / 2, size * 0.38, size * 0.35, '#e8913a15');
-  drawChevron(ctx, size / 2, size * 0.38, size * 0.38, AMBER);
-  drawTrail(ctx, size / 2, size * 0.38, size * 0.38, AMBER + '44');
+  // Glow
+  drawGlow(ctx, size / 2, size / 2, size * 0.5, '#e8913a15');
 
-  // "LaunchPad" text below
-  const fontSize = 64;
-  ctx.font = `${fontSize}px SpaceMono`;
-  ctx.fillStyle = AMBER_DARK;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.letterSpacing = '2px';
-  ctx.fillText('LaunchPad', size / 2, size * 0.62);
+  // Full "LaunchPad" text
+  drawFullWordmark(ctx, size / 2, size / 2, 72, AMBER_DARK);
 
   const buffer = canvas.toBuffer('image/png');
   fs.writeFileSync(path.join(ASSETS_DIR, 'splash-icon.png'), buffer);

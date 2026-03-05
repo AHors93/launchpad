@@ -46,6 +46,22 @@ export function parseMessage(content: string): ParsedMessage {
               label: data.label ?? 'Open link',
             });
             break;
+          case 'save_idea':
+            actions.push({
+              type: 'save_idea',
+              title: data.title ?? '',
+              description: data.description,
+            });
+            break;
+          case 'create_task':
+            actions.push({
+              type: 'create_task',
+              title: data.title ?? '',
+              dueDate: data.dueDate ?? '',
+              description: data.description,
+              linkedIdeaId: data.linkedIdeaId,
+            });
+            break;
         }
       } catch (e) {
         console.warn('Malformed action block:', json, e);
@@ -69,6 +85,10 @@ export function getActionLabel(action: BobAction): string {
       return `Open "${action.query}" in maps`;
     case 'link':
       return action.label;
+    case 'save_idea':
+      return `Save "${action.title}" to vault`;
+    case 'create_task':
+      return `Task: ${action.title}`;
   }
 }
 
@@ -82,6 +102,10 @@ export function getActionIcon(action: BobAction): string {
       return '\u{1F4CD}';
     case 'link':
       return '\u{1F517}';
+    case 'save_idea':
+      return '\u{1F4A1}';
+    case 'create_task':
+      return '\u{2705}';
   }
 }
 
@@ -95,6 +119,10 @@ export async function executeAction(action: BobAction): Promise<void> {
       return executeMaps(action);
     case 'link':
       return executeLink(action);
+    case 'save_idea':
+    case 'create_task':
+      // Handled via callbacks in ChatBubble, not executeAction
+      return;
   }
 }
 

@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -59,6 +60,7 @@ async function registerForPushNotifications(): Promise<string | null> {
 
 export function useNotifications() {
   const { isAuthenticated } = useAuth();
+  const router = useRouter();
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
@@ -77,8 +79,15 @@ export function useNotifications() {
     });
 
     // Listen for when user taps a notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
-      // Could navigate to specific screen based on notification data
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { type?: string } | undefined;
+
+      if (data?.type === 'task_reminder') {
+        router.navigate('/(tabs)/progress');
+      } else {
+        // Default: navigate to ideas for nudges/stale reminders
+        router.navigate('/(tabs)/ideas');
+      }
     });
 
     return () => {
@@ -89,7 +98,7 @@ export function useNotifications() {
         responseListener.current.remove();
       }
     };
-  }, []);
+  }, [router]);
 
   // Register push token with backend only when authenticated (endpoint requires auth)
   useEffect(() => {
@@ -107,17 +116,11 @@ export function useNotifications() {
 }
 
 export interface NotificationPreferences {
-  nudgesEnabled: boolean;
   staleIdeaReminders: boolean;
-  coachFollowUps: boolean;
-  careerPathUpdates: boolean;
 }
 
 const DEFAULT_PREFS: NotificationPreferences = {
-  nudgesEnabled: true,
   staleIdeaReminders: true,
-  coachFollowUps: true,
-  careerPathUpdates: true,
 };
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {

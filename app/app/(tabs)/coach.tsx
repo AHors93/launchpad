@@ -23,8 +23,10 @@ import {
 } from '@/hooks/useCoach';
 import { useIdeas } from '@/hooks/useIdeas';
 import { useProfile } from '@/hooks/useProfile';
+import { useCreateTask } from '@/hooks/useTasks';
 import { isBackendConfigured } from '@/services/api';
 import { colors, fontFamily, spacing } from '@/theme/tokens';
+import { CreateTaskAction, SaveIdeaAction } from '@/types/action';
 import { ChatMessage } from '@/types/coach';
 import { hapticLight } from '@/utils/haptics';
 
@@ -35,6 +37,7 @@ export default function CoachScreen() {
   const sendMessage = useSendMessage();
   const { data: profile } = useProfile();
   const { data: ideas } = useIdeas();
+  const createTask = useCreateTask();
   const { track } = useAnalytics();
   const router = useRouter();
   const params = useLocalSearchParams<{ ideaId?: string; ideaTitle?: string; ideaDesc?: string }>();
@@ -43,15 +46,17 @@ export default function CoachScreen() {
   const historySheetRef = useRef<BottomSheet>(null);
 
   const [activeId, setActiveId] = useState<string | undefined>(undefined);
+  const [pendingNew, setPendingNew] = useState(false);
 
   // Resolve active conversation
   const conversation = useMemo(() => {
+    if (pendingNew) return undefined;
     if (conversations === undefined || conversations.length === 0) return undefined;
     if (activeId !== undefined) {
       return conversations.find((c) => c.id === activeId);
     }
     return conversations[0];
-  }, [conversations, activeId]);
+  }, [conversations, activeId, pendingNew]);
 
   const isStreaming = sendMessage.isPending;
   const lastMessage = conversation?.messages[conversation.messages.length - 1];
@@ -92,6 +97,7 @@ export default function CoachScreen() {
         createConversation.mutate(undefined, {
           onSuccess: (newConvo) => {
             setActiveId(newConvo.id);
+            setPendingNew(false);
             track({ name: 'conversation_started' });
             sendMessage.mutate({ conversationId: newConvo.id, content, profile });
           },
@@ -105,10 +111,15 @@ export default function CoachScreen() {
 
   const handleNewConversation = useCallback(() => {
     hapticLight();
+    setPendingNew(true);
     createConversation.mutate(undefined, {
       onSuccess: (newConvo) => {
         setActiveId(newConvo.id);
+        setPendingNew(false);
         track({ name: 'conversation_started' });
+      },
+      onError: () => {
+        setPendingNew(false);
       },
     });
   }, [createConversation, track]);
@@ -171,11 +182,36 @@ export default function CoachScreen() {
     [deleteConversation, activeId, track],
   );
 
+  const handleSaveIdeaAction = useCallback(
+    (action: SaveIdeaAction) => {
+      void saveAsIdea({ title: action.title, description: action.description });
+    },
+    [saveAsIdea],
+  );
+
+  const handleCreateTaskAction = useCallback(
+    (action: CreateTaskAction) => {
+      createTask.mutate({
+        title: action.title,
+        description: action.description,
+        dueDate: action.dueDate,
+        linkedIdeaId: action.linkedIdeaId ?? conversation?.ideaId,
+        source: 'bob',
+      });
+    },
+    [createTask, conversation?.ideaId],
+  );
+
   const renderMessage = useCallback(
     ({ item }: { item: ChatMessage }) => (
-      <ChatBubble role={item.role === 'assistant' ? 'coach' : 'user'} text={item.content} />
+      <ChatBubble
+        role={item.role === 'assistant' ? 'coach' : 'user'}
+        text={item.content}
+        onSaveIdea={item.role === 'assistant' ? handleSaveIdeaAction : undefined}
+        onCreateTask={item.role === 'assistant' ? handleCreateTaskAction : undefined}
+      />
     ),
-    [],
+    [handleSaveIdeaAction, handleCreateTaskAction],
   );
 
   const keyExtractor = useCallback((item: ChatMessage) => item.id, []);

@@ -32,10 +32,7 @@ import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 const DEFAULT_PREFS: NotificationPreferences = {
-  nudgesEnabled: true,
   staleIdeaReminders: true,
-  coachFollowUps: true,
-  careerPathUpdates: true,
 };
 
 export default function SettingsScreen() {
@@ -291,31 +288,10 @@ export default function SettingsScreen() {
           <Text style={styles.sectionLabel}>Notifications</Text>
           <View style={styles.card}>
             <SettingRow
-              label="Idea nudges"
-              desc="Encouragement when you add or progress ideas"
-              value={prefs.nudgesEnabled}
-              onToggle={() => togglePref('nudgesEnabled')}
-            />
-            <View style={styles.divider} />
-            <SettingRow
               label="Stale idea reminders"
               desc="Ping when an idea hasn't moved in a while"
               value={prefs.staleIdeaReminders}
               onToggle={() => togglePref('staleIdeaReminders')}
-            />
-            <View style={styles.divider} />
-            <SettingRow
-              label="Bob follow-ups"
-              desc="Action items from conversations with Bob"
-              value={prefs.coachFollowUps}
-              onToggle={() => togglePref('coachFollowUps')}
-            />
-            <View style={styles.divider} />
-            <SettingRow
-              label="Career path updates"
-              desc="New info about saved career paths"
-              value={prefs.careerPathUpdates}
-              onToggle={() => togglePref('careerPathUpdates')}
             />
           </View>
         </View>

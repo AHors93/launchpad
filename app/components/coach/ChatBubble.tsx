@@ -11,16 +11,18 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { colors, fontFamily, gradients, radius, spacing, typography } from '@/theme/tokens';
-import { BobAction } from '@/types/action';
+import { BobAction, CreateTaskAction, SaveIdeaAction } from '@/types/action';
 import { executeAction, getActionIcon, getActionLabel, parseMessage } from '@/utils/actions';
 import { hapticMedium } from '@/utils/haptics';
 
 interface ChatBubbleProps {
   role: 'user' | 'coach';
   text: string;
+  onSaveIdea?: (action: SaveIdeaAction) => void;
+  onCreateTask?: (action: CreateTaskAction) => void;
 }
 
-export function ChatBubble({ role, text }: ChatBubbleProps) {
+export function ChatBubble({ role, text, onSaveIdea, onCreateTask }: ChatBubbleProps) {
   const isUser = role === 'user';
 
   const parsed = useMemo(
@@ -71,7 +73,12 @@ export function ChatBubble({ role, text }: ChatBubbleProps) {
         {parsed.actions.length > 0 && (
           <View style={styles.actionsContainer}>
             {parsed.actions.map((action, i) => (
-              <ActionButton key={i} action={action} />
+              <ActionButton
+                key={i}
+                action={action}
+                onSaveIdea={onSaveIdea}
+                onCreateTask={onCreateTask}
+              />
             ))}
           </View>
         )}
@@ -80,10 +87,24 @@ export function ChatBubble({ role, text }: ChatBubbleProps) {
   );
 }
 
-function ActionButton({ action }: { action: BobAction }) {
+function ActionButton({
+  action,
+  onSaveIdea,
+  onCreateTask,
+}: {
+  action: BobAction;
+  onSaveIdea?: (action: SaveIdeaAction) => void;
+  onCreateTask?: (action: CreateTaskAction) => void;
+}) {
   const handlePress = () => {
     hapticMedium();
-    void executeAction(action);
+    if (action.type === 'save_idea' && onSaveIdea !== undefined) {
+      onSaveIdea(action);
+    } else if (action.type === 'create_task' && onCreateTask !== undefined) {
+      onCreateTask(action);
+    } else {
+      void executeAction(action);
+    }
   };
 
   return (

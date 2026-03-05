@@ -56,6 +56,7 @@ export function useConversations() {
   return useQuery({
     queryKey: coachKeys.all,
     queryFn: loadConversations,
+    staleTime: 30_000,
   });
 }
 
@@ -405,42 +406,50 @@ export function useSaveIdeaFromChat(conversation: Conversation | undefined) {
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
 
-  const save = useCallback(async () => {
-    if (conversation === undefined || conversation.messages.length === 0) return;
+  const save = useCallback(
+    async (override?: { title: string; description?: string }) => {
+      if (conversation === undefined || conversation.messages.length === 0) return;
 
-    setIsSaving(true);
-    try {
-      const apiMessages = conversation.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-      const extracted = useApi
-        ? await extractIdeaApi(apiMessages)
-        : await extractIdeaFromConversation(apiMessages);
-      createIdea.mutate(
-        { title: extracted.title, description: extracted.description },
-        {
-          onSuccess: (idea) => {
-            hapticSuccess();
-            Alert.alert('Saved to vault', `"${extracted.title}" has been added to your ideas.`);
+      setIsSaving(true);
+      try {
+        const extracted =
+          override !== undefined
+            ? override
+            : await (async () => {
+                const apiMessages = conversation.messages.map((m) => ({
+                  role: m.role,
+                  content: m.content,
+                }));
+                return useApi
+                  ? await extractIdeaApi(apiMessages)
+                  : await extractIdeaFromConversation(apiMessages);
+              })();
+        createIdea.mutate(
+          { title: extracted.title, description: extracted.description },
+          {
+            onSuccess: (idea) => {
+              hapticSuccess();
+              Alert.alert('Saved to vault', `"${extracted.title}" has been added to your ideas.`);
 
-            // Link this conversation to the saved idea
-            const ideaId = idea.ideaId;
-            if (useApi) {
-              void updateConversationApi(conversation.id, { linkedIdeaId: ideaId });
-            }
-            queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
-              (old ?? []).map((c) => (c.id === conversation.id ? { ...c, ideaId } : c)),
-            );
+              // Link this conversation to the saved idea
+              const ideaId = idea.ideaId;
+              if (useApi) {
+                void updateConversationApi(conversation.id, { linkedIdeaId: ideaId });
+              }
+              queryClient.setQueryData<Conversation[]>(coachKeys.all, (old) =>
+                (old ?? []).map((c) => (c.id === conversation.id ? { ...c, ideaId } : c)),
+              );
+            },
           },
-        },
-      );
-    } catch {
-      Alert.alert('Error', 'Failed to extract idea. Try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [conversation, createIdea, queryClient]);
+        );
+      } catch {
+        Alert.alert('Error', 'Failed to extract idea. Try again.');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [conversation, createIdea, queryClient],
+  );
 
   return { saveAsIdea: save, isSavingIdea: isSaving };
 }

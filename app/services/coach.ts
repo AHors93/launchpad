@@ -44,13 +44,29 @@ When the conversation reaches a point where a concrete action would help, includ
 [ACTION:calendar]{"title":"Event name","notes":"Optional details","location":"Optional place"}[/ACTION]
 [ACTION:maps]{"query":"Place or address to search"}[/ACTION]
 [ACTION:link]{"url":"https://example.com","label":"Button text"}[/ACTION]
+[ACTION:save_idea]{"title":"Idea name","description":"Brief description of the idea"}[/ACTION]
+[ACTION:create_task]{"title":"Task description","dueDate":"2026-03-05T10:00:00Z","description":"Optional details"}[/ACTION]
 
 Rules for actions:
 - Only include an action when it's genuinely useful and the user would expect it.
 - Maximum 1-2 actions per message. Don't overdo it.
 - Always write your normal text response FIRST, then append the action block.
 - For emails, write a complete professional draft in the body.
-- Don't mention the action format in your text — just say something like "Here's a draft you can fire off" and include the action block.`;
+- Don't mention the action format in your text — just say something like "Here's a draft you can fire off" and include the action block.
+
+save_idea — when to use:
+- User describes a concrete idea worth pursuing ("I want to build...", "I'm thinking about starting...")
+- Only suggest ONCE per conversation. Don't keep offering.
+- Don't suggest for vague musings ("maybe someday I'll...")
+- Say something natural like "Want me to save that to your tracks?" then include the action.
+
+create_task — when to use:
+- User mentions a specific thing they need to do with a deadline or timeframe
+- Examples: "I need to post on X tomorrow", "I should email Sarah by Friday", "I need to finish the landing page this week"
+- Convert relative dates to ISO 8601 using today's date context (provided below)
+- If no specific time is mentioned, default to 09:00 in the user's implied timezone
+- Maximum 1-2 tasks per message
+- Say something natural like "Let me set that as a task so you don't forget" then include the action.`;
 
 function buildSystemPrompt(profile?: UserProfile): string {
   if (profile === undefined) return BASE_SYSTEM_PROMPT;
@@ -73,9 +89,11 @@ function buildSystemPrompt(profile?: UserProfile): string {
     parts.push(`About them: ${profile.bio}.`);
   }
 
-  if (parts.length === 0) return BASE_SYSTEM_PROMPT;
+  const dateContext = `\n\nToday's date: ${new Date().toISOString().split('T')[0]}`;
 
-  return `${BASE_SYSTEM_PROMPT}\n\nAbout the person you're talking to:\n${parts.join(' ')}`;
+  if (parts.length === 0) return BASE_SYSTEM_PROMPT + dateContext;
+
+  return `${BASE_SYSTEM_PROMPT}\n\nAbout the person you're talking to:\n${parts.join(' ')}${dateContext}`;
 }
 
 const EXTRACTION_PROMPT = `Based on the conversation below, extract a concise startup/project idea.

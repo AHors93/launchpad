@@ -125,11 +125,13 @@ export const handler = awslambda.streamifyResponse(
         { role: 'user' as const, content },
       ];
 
+      const systemPrompt = `${COACH_SYSTEM_PROMPT}\n\nToday's date: ${new Date().toISOString().split('T')[0]}`;
+
       const claude = await getClaudeClient();
       const claudeStream = await claude.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
-        system: COACH_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: apiMessages,
         stream: true,
       });

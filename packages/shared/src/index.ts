@@ -4,6 +4,7 @@ export type { Conversation, Message, MessageRole, ConversationMode } from './typ
 export type { SavedPath, SearchResult, PathSuggestion } from './types/explore';
 export type { UserProfile, NotificationPreferences } from './types/user';
 export type { Nudge, NudgeType } from './types/nudge';
+export type { Task, TaskStatus, TaskSource } from './types/task';
 export type {
   BaseEvent,
   IdeaCreatedEvent,
@@ -46,6 +47,12 @@ export {
   type UpdateNotificationPrefsInput,
 } from './validation/notification.schema';
 export { appleSignInSchema, type AppleSignInInput } from './validation/auth.schema';
+export {
+  createTaskSchema,
+  updateTaskSchema,
+  type CreateTaskInput,
+  type UpdateTaskInput,
+} from './validation/task.schema';
 
 // Constants
 export { IDEA_STATUSES, STATUS_LABELS, STATUS_COLORS } from './constants/statuses';

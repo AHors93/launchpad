@@ -313,6 +313,61 @@ export async function appleSignInApi(input: {
   return response.json() as Promise<{ email: string; authKey: string; isNewUser?: boolean }>;
 }
 
+// ── Tasks API ─────────────────────────────────────────────
+
+export interface ApiTask {
+  taskId: string;
+  title: string;
+  description?: string;
+  dueDate: string;
+  reminderDate: string;
+  linkedIdeaId?: string;
+  status: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchTasks(options?: { status?: string }): Promise<ApiTask[]> {
+  const params = new URLSearchParams();
+  if (options?.status !== undefined) params.set('status', options.status);
+  const query = params.toString() !== '' ? `?${params.toString()}` : '';
+  const data = await apiClient<{ tasks: ApiTask[] }>(`/tasks${query}`);
+  return data.tasks;
+}
+
+export async function createTaskApi(input: {
+  title: string;
+  description?: string;
+  dueDate: string;
+  linkedIdeaId?: string;
+  source?: string;
+}): Promise<ApiTask> {
+  return apiClient<ApiTask>('/tasks', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateTaskApi(
+  taskId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    dueDate?: string;
+    status?: string;
+  },
+): Promise<void> {
+  await apiClient(`/tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+}
+
+export async function deleteTaskApi(taskId: string): Promise<void> {
+  await apiClient(`/tasks/${taskId}`, { method: 'DELETE' });
+}
+
 // ── Coach Idea Extraction API ───────────────────────────
 
 export async function extractIdeaApi(

@@ -1,4 +1,4 @@
-export type ActionType = 'email' | 'calendar' | 'maps' | 'link';
+export type ActionType = 'email' | 'calendar' | 'maps' | 'link' | 'save_idea' | 'create_task';
 
 export interface EmailAction {
   type: 'email';
@@ -26,7 +26,27 @@ export interface LinkAction {
   label: string;
 }
 
-export type BobAction = EmailAction | CalendarAction | MapsAction | LinkAction;
+export interface SaveIdeaAction {
+  type: 'save_idea';
+  title: string;
+  description?: string;
+}
+
+export interface CreateTaskAction {
+  type: 'create_task';
+  title: string;
+  dueDate: string;
+  description?: string;
+  linkedIdeaId?: string;
+}
+
+export type BobAction =
+  | EmailAction
+  | CalendarAction
+  | MapsAction
+  | LinkAction
+  | SaveIdeaAction
+  | CreateTaskAction;
 
 export interface ParsedMessage {
   text: string;

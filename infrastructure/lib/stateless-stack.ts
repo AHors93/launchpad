@@ -406,6 +406,37 @@ export class StatelessStack extends cdk.Stack {
       authorizer,
     });
 
+    // ─── Tasks API ─────────────────────────────────────────────
+    const createTask = createApiHandler('CreateTask', 'api/tasks/create.ts');
+    const listTasks = createApiHandler('ListTasks', 'api/tasks/list.ts');
+    const updateTask = createApiHandler('UpdateTask', 'api/tasks/update.ts');
+    const deleteTask = createApiHandler('DeleteTask', 'api/tasks/delete.ts');
+
+    api.addRoutes({
+      path: '/tasks',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration: new HttpLambdaIntegration('CreateTaskInt', createTask),
+      authorizer,
+    });
+    api.addRoutes({
+      path: '/tasks',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('ListTasksInt', listTasks),
+      authorizer,
+    });
+    api.addRoutes({
+      path: '/tasks/{taskId}',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration('UpdateTaskInt', updateTask),
+      authorizer,
+    });
+    api.addRoutes({
+      path: '/tasks/{taskId}',
+      methods: [apigatewayv2.HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('DeleteTaskInt', deleteTask),
+      authorizer,
+    });
+
     // ─── Event Handlers ─────────────────────────────────────────
     const nudgeGenerator = createEventHandler('NudgeGenerator', 'events/nudge-generator.ts');
     new events.Rule(this, 'IdeaEventsRule', {
@@ -453,6 +484,23 @@ export class StatelessStack extends cdk.Stack {
       eventPattern: {
         source: ['launchpad.nudges'],
         detailType: ['nudge.created'],
+      },
+      targets: [new targets.LambdaFunction(notificationSender)],
+    });
+
+    const taskReminderChecker = createEventHandler(
+      'TaskReminderChecker',
+      'events/task-reminder-checker.ts',
+    );
+    new events.Rule(this, 'TaskReminderSchedule', {
+      schedule: events.Schedule.cron({ hour: '7,8,9,10,17,18', minute: '0' }),
+      targets: [new targets.LambdaFunction(taskReminderChecker)],
+    });
+    new events.Rule(this, 'TaskReminderEventRule', {
+      eventBus,
+      eventPattern: {
+        source: ['launchpad.tasks'],
+        detailType: ['task.reminder'],
       },
       targets: [new targets.LambdaFunction(notificationSender)],
     });
