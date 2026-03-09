@@ -32,10 +32,8 @@ async function getProfile(userId: string) {
     | {
         pushToken?: string;
         notificationPreferences?: {
-          nudgesEnabled?: boolean;
           staleIdeaReminders?: boolean;
           coachFollowUps?: boolean;
-          careerPathUpdates?: boolean;
         };
       }
     | undefined;
@@ -143,13 +141,6 @@ export const handler = async (event: EventBridgeEvent<string, EventDetail>): Pro
     if (prefs !== undefined) {
       if (nudgeType === 'stale_idea' && prefs.staleIdeaReminders === false) return;
       if (nudgeType === 'action_item' && prefs.coachFollowUps === false) return;
-      if (nudgeType === 'career_checkin' && prefs.careerPathUpdates === false) return;
-      if (
-        (nudgeType === 'idea_created' || nudgeType === 'status_changed') &&
-        prefs.nudgesEnabled === false
-      ) {
-        return;
-      }
     }
 
     await handleNudge(detail, profile.pushToken);

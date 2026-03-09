@@ -438,24 +438,6 @@ export class StatelessStack extends cdk.Stack {
     });
 
     // ─── Event Handlers ─────────────────────────────────────────
-    const nudgeGenerator = createEventHandler('NudgeGenerator', 'events/nudge-generator.ts');
-    new events.Rule(this, 'IdeaEventsRule', {
-      eventBus,
-      eventPattern: {
-        source: ['launchpad.ideas'],
-        detailType: ['idea.created', 'idea.status_changed'],
-      },
-      targets: [new targets.LambdaFunction(nudgeGenerator)],
-    });
-    new events.Rule(this, 'PathSavedRule', {
-      eventBus,
-      eventPattern: {
-        source: ['launchpad.explore'],
-        detailType: ['explore.path_saved'],
-      },
-      targets: [new targets.LambdaFunction(nudgeGenerator)],
-    });
-
     const staleChecker = createEventHandler('StaleIdeaChecker', 'events/stale-idea-checker.ts');
     new events.Rule(this, 'StaleIdeaSchedule', {
       schedule: events.Schedule.cron({ hour: '8', minute: '0' }),
@@ -466,12 +448,8 @@ export class StatelessStack extends cdk.Stack {
       'ActionItemExtractor',
       'events/action-item-extractor.ts',
     );
-    new events.Rule(this, 'ConversationIdleRule', {
-      eventBus,
-      eventPattern: {
-        source: ['launchpad.coach'],
-        detailType: ['coach.conversation_idle'],
-      },
+    new events.Rule(this, 'ActionItemSchedule', {
+      schedule: events.Schedule.cron({ hour: '9', minute: '0' }),
       targets: [new targets.LambdaFunction(actionExtractor)],
     });
 

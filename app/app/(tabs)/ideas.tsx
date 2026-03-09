@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet from '@gorhom/bottom-sheet';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -108,6 +109,15 @@ function ListHeader({
 export default function IdeasScreen() {
   const router = useRouter();
   const [trackFilter, setTrackFilter] = useState<TrackType | undefined>(undefined);
+  const [onboardingTrack, setOnboardingTrack] = useState<TrackType | undefined>(undefined);
+
+  useEffect(() => {
+    void AsyncStorage.getItem('launchpad_onboarding_track').then((value) => {
+      if (value !== null) {
+        setOnboardingTrack(value as TrackType);
+      }
+    });
+  }, []);
   const { data: allIdeas } = useIdeas();
   const {
     data: ideas,
@@ -272,7 +282,7 @@ export default function IdeasScreen() {
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      <AddIdeaSheet ref={sheetRef} onSubmit={handleCreateIdea} />
+      <AddIdeaSheet ref={sheetRef} onSubmit={handleCreateIdea} defaultTrackType={onboardingTrack} />
     </SafeAreaView>
   );
 }

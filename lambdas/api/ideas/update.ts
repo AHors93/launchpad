@@ -3,7 +3,6 @@ import { updateIdeaSchema, isValidStatusForTrack } from '@launchpad/shared';
 import type { IdeaStatus, TrackType } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
-import { emitEvent } from '../../shared/eventbridge-client';
 import {
   withErrorHandling,
   getUserId,
@@ -38,9 +37,10 @@ export const handler = withErrorHandling(async (event) => {
     }
   }
 
-  const updates: string[] = ['#updatedAt = :now'];
+  // Reset staleTier on any update so stale nudge cycle restarts
+  const updates: string[] = ['#updatedAt = :now', 'staleTier = :zero'];
   const names: Record<string, string> = { '#updatedAt': 'updatedAt' };
-  const values: Record<string, unknown> = { ':now': now };
+  const values: Record<string, unknown> = { ':now': now, ':zero': 0 };
 
   if (input.title !== undefined) {
     updates.push('#title = :title');
@@ -87,17 +87,6 @@ export const handler = withErrorHandling(async (event) => {
       ReturnValues: 'ALL_NEW',
     }),
   );
-
-  if (input.status && input.status !== current.Item.status) {
-    await emitEvent('launchpad.ideas', 'idea.status_changed', {
-      userId,
-      ideaId,
-      previousStatus: current.Item.status,
-      newStatus: input.status,
-      trackType: effectiveTrackType,
-      timestamp: now,
-    });
-  }
 
   return success({ updated: true });
 });

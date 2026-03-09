@@ -31,7 +31,6 @@ describe('TRACK_CONFIG', () => {
     expect(config.label).toBeTruthy();
     expect(config.icon).toBeTruthy();
     expect(config.statuses.length).toBeGreaterThan(0);
-    expect(config.staleThresholdDays).toBeGreaterThan(0);
     expect(config.defaultStatus).toBeTruthy();
   });
 
@@ -66,7 +65,6 @@ describe('TRACK_CONFIG', () => {
       'shipped',
     ]);
     expect(config.defaultStatus).toBe('spark');
-    expect(config.staleThresholdDays).toBe(7);
   });
 
   it('job_application has accepted and rejected as terminal', () => {

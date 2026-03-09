@@ -19,14 +19,15 @@ import { hapticSuccess } from '@/utils/haptics';
 
 interface AddIdeaSheetProps {
   onSubmit: (title: string, trackType: TrackType) => void;
+  defaultTrackType?: TrackType;
 }
 
 export const AddIdeaSheet = forwardRef<BottomSheet, AddIdeaSheetProps>(function AddIdeaSheet(
-  { onSubmit },
+  { onSubmit, defaultTrackType },
   ref,
 ) {
   const [title, setTitle] = useState('');
-  const [selectedTrack, setSelectedTrack] = useState<TrackType>('side_project');
+  const [selectedTrack, setSelectedTrack] = useState<TrackType>(defaultTrackType ?? 'side_project');
   const prompt = TRACK_PROMPTS[selectedTrack];
   const snapPoints = useMemo(() => ['50%'], []);
 

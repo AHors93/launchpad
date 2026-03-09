@@ -12,7 +12,6 @@ export interface TrackConfig {
   icon: string;
   description: string;
   statuses: StatusConfig[];
-  staleThresholdDays: number;
   defaultStatus: IdeaStatus;
 }
 
@@ -41,7 +40,6 @@ export const TRACK_CONFIG: Record<TrackType, TrackConfig> = {
       },
       { value: 'shipped', label: '\u{1F680} Shipped!', color: '#2ec98e', isTerminal: true },
     ],
-    staleThresholdDays: 7,
     defaultStatus: 'spark',
   },
   job_application: {
@@ -61,7 +59,6 @@ export const TRACK_CONFIG: Record<TrackType, TrackConfig> = {
       { value: 'accepted', label: '\u{2705} Accepted', color: '#2ec98e', isTerminal: true },
       { value: 'rejected', label: '\u{274C} Rejected', color: '#e8534a', isTerminal: true },
     ],
-    staleThresholdDays: 5,
     defaultStatus: 'bookmarked',
   },
   career_pivot: {
@@ -90,7 +87,6 @@ export const TRACK_CONFIG: Record<TrackType, TrackConfig> = {
       },
       { value: 'landed', label: '\u{1F389} Landed', color: '#2ec98e', isTerminal: true },
     ],
-    staleThresholdDays: 10,
     defaultStatus: 'curious',
   },
   course: {
@@ -109,7 +105,6 @@ export const TRACK_CONFIG: Record<TrackType, TrackConfig> = {
       },
       { value: 'completed', label: '\u{2705} Completed', color: '#2ec98e', isTerminal: true },
     ],
-    staleThresholdDays: 14,
     defaultStatus: 'interested',
   },
   freelance: {
@@ -128,7 +123,6 @@ export const TRACK_CONFIG: Record<TrackType, TrackConfig> = {
       { value: 'active', label: '\u{26A1} Active', color: '#4a9eff', isTerminal: false },
       { value: 'delivered', label: '\u{1F4E6} Delivered', color: '#2ec98e', isTerminal: true },
     ],
-    staleThresholdDays: 5,
     defaultStatus: 'lead',
   },
   custom: {
@@ -140,7 +134,6 @@ export const TRACK_CONFIG: Record<TrackType, TrackConfig> = {
       { value: 'in_progress', label: '\u{1F3C3} In Progress', color: '#4a9eff', isTerminal: false },
       { value: 'done', label: '\u{2705} Done', color: '#2ec98e', isTerminal: true },
     ],
-    staleThresholdDays: 7,
     defaultStatus: 'to_do',
   },
 };

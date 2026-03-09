@@ -33,6 +33,7 @@ import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 const DEFAULT_PREFS: NotificationPreferences = {
   staleIdeaReminders: true,
+  coachFollowUps: true,
 };
 
 export default function SettingsScreen() {
@@ -289,9 +290,16 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <SettingRow
               label="Stale idea reminders"
-              desc="Ping when an idea hasn't moved in a while"
+              desc="Nudge when an idea hasn't moved in 3 or 7 days"
               value={prefs.staleIdeaReminders}
               onToggle={() => togglePref('staleIdeaReminders')}
+            />
+            <View style={styles.divider} />
+            <SettingRow
+              label="Coach follow-ups"
+              desc="Remind you of action items from Bob conversations"
+              value={prefs.coachFollowUps}
+              onToggle={() => togglePref('coachFollowUps')}
             />
           </View>
         </View>

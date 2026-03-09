@@ -9,8 +9,6 @@ export interface UserProfile {
 }
 
 export interface NotificationPreferences {
-  nudgesEnabled: boolean;
   staleIdeaReminders: boolean;
   coachFollowUps: boolean;
-  careerPathUpdates: boolean;
 }

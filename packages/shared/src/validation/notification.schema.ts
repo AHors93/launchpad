@@ -5,9 +5,8 @@ export const registerPushSchema = z.object({
 });
 
 export const updateNotificationPrefsSchema = z.object({
-  nudges: z.boolean().optional(),
-  staleReminders: z.boolean().optional(),
-  actionItems: z.boolean().optional(),
+  staleIdeaReminders: z.boolean().optional(),
+  coachFollowUps: z.boolean().optional(),
 });
 
 export type RegisterPushInput = z.infer<typeof registerPushSchema>;

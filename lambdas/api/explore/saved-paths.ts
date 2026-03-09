@@ -4,7 +4,6 @@ import { QueryCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { savePathSchema } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
-import { emitEvent } from '../../shared/eventbridge-client';
 import { withErrorHandling, getUserId, parseBody, success } from '../../shared/middleware';
 
 export const handler = withErrorHandling(async (event) => {
@@ -44,14 +43,6 @@ export const handler = withErrorHandling(async (event) => {
         },
       }),
     );
-
-    await emitEvent('launchpad.explore', 'explore.path_saved', {
-      userId,
-      pathId,
-      query,
-      title,
-      timestamp: now,
-    });
 
     return success({ pathId }, 201);
   }

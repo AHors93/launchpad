@@ -124,7 +124,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Uncomment to reset onboarding for testing:
-    // void AsyncStorage.removeItem(ONBOARDING_KEY);
+    void AsyncStorage.removeItem(ONBOARDING_KEY);
     void AsyncStorage.getItem(ONBOARDING_KEY).then((value) => {
       setOnboardingComplete(value === 'true');
       setOnboardingChecked(true);
@@ -148,8 +148,11 @@ export default function RootLayout() {
     }
   }, [loaded, onboardingChecked, splashOpacity, splashTextOpacity]);
 
-  const handleOnboardingComplete = useCallback(async () => {
+  const handleOnboardingComplete = useCallback(async (selectedTrack?: string) => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+    if (selectedTrack !== undefined) {
+      await AsyncStorage.setItem('launchpad_onboarding_track', selectedTrack);
+    }
     setOnboardingComplete(true);
   }, []);
 
@@ -166,7 +169,7 @@ export default function RootLayout() {
               <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
                 <StatusBar style="dark" />
                 {!onboardingComplete ? (
-                  <OnboardingScreen onComplete={() => void handleOnboardingComplete()} />
+                  <OnboardingScreen onComplete={(track) => void handleOnboardingComplete(track)} />
                 ) : cognitoConfigured ? (
                   <AuthRouter />
                 ) : (

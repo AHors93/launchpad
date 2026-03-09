@@ -4,7 +4,6 @@ import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { createIdeaSchema, getTrackConfig } from '@launchpad/shared';
 
 import { dynamo, TABLE_NAME } from '../../shared/dynamo-client';
-import { emitEvent } from '../../shared/eventbridge-client';
 import { withErrorHandling, getUserId, parseBody, success } from '../../shared/middleware';
 
 export const handler = withErrorHandling(async (event) => {
@@ -33,14 +32,6 @@ export const handler = withErrorHandling(async (event) => {
   };
 
   await dynamo.send(new PutCommand({ TableName: TABLE_NAME, Item: idea }));
-
-  await emitEvent('launchpad.ideas', 'idea.created', {
-    userId,
-    ideaId,
-    title: input.title,
-    trackType,
-    timestamp: now,
-  });
 
   return success(
     {

@@ -117,10 +117,12 @@ export function useNotifications() {
 
 export interface NotificationPreferences {
   staleIdeaReminders: boolean;
+  coachFollowUps: boolean;
 }
 
 const DEFAULT_PREFS: NotificationPreferences = {
   staleIdeaReminders: true,
+  coachFollowUps: true,
 };
 
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {

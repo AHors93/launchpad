@@ -1,77 +1,213 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import { Dimensions, FlatList, Pressable, StyleSheet, Text, View, ViewToken } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GradientBackground } from '@/components/GradientBackground';
-import { colors, fontFamily, radius, spacing } from '@/theme/tokens';
+import { TRACK_CONFIG, TRACK_TYPES } from '@/constants/tracks';
+import { colors, fontFamily, gradients, radius, shadows, spacing } from '@/theme/tokens';
+import type { TrackType } from '@/types/idea';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
-  emoji: string;
   title: string;
-  body: string;
-  accent?: string;
+  subtitle: string;
+  accent: string;
+  buttonGradient: readonly [string, string];
 }
 
 const SLIDES: OnboardingSlide[] = [
   {
-    id: 'welcome',
-    emoji: '\u{1F44B}',
-    title: "Hey, I'm Adam",
-    body: "I wanted to add a personal touch as to why this app has come into existence.\n\nI've been a software engineer just over 6 years, last September I was made redundant. The time off helped guide me to pursue what I really want to do, and its change career for the 3rd time before 35!\n\nIn my experience, there isn't a lot of guidance out there, if you want to change careers. It takes hours and hours just to even get remotely close to what you might be looking for.\n\nLaunchpad is here as a bit of a guide to help you get started, or even just give you some inspiration. It's not career advice, disclaimer, but it can hopefully give you that nudge to maybe pursue the career you really want, or make that app you've dreamt about creating...",
-    accent: colors.coral[400],
-  },
-  {
-    id: 'why',
-    emoji: '\u{1F4A1}',
-    title: 'Why this exists',
-    body: "Most idea apps are just lists. LaunchPad is different — it's a coach, a tracker, and a career explorer in one.\n\nIt's built for people of all ages who know they want to try something new, but just don't know where to start.",
-    accent: colors.status.spark,
-  },
-  {
-    id: 'ideas',
-    emoji: '\u{1F4DD}',
-    title: 'Capture ideas',
-    body: 'Drop any idea in your vault. Track it from spark to shipped.\n\nNo judgment. The only bad idea is the one you never wrote down.',
-    accent: colors.primary[400],
-  },
-  {
-    id: 'coach',
-    emoji: '\u{1F5E3}\u{FE0F}',
-    title: 'Meet Bob',
-    body: 'Bob is your side coach — named after my childhood cat, who was genuinely the best cat in the world.\n\nBob will help you break big ambitions into small steps, challenge weak ideas, and push you toward action. Be honest and open with Bob about who you are and what you like — the more you give, the more personal it gets.',
-    accent: colors.purple[400],
-  },
-  {
-    id: 'explore',
-    emoji: '\u{1F50D}',
-    title: 'Explore paths',
-    body: "Curious about a career change? Bob will help you explore, and if you allow notifications, will give you a nudge if you're stuck or if some time has passed and you need to follow up.",
+    id: 'capture',
+    title: 'Capture everything',
+    subtitle: 'Ideas, job applications, career moves \u2014 tracked from spark to shipped.',
     accent: colors.primary[500],
+    buttonGradient: gradients.primary,
   },
   {
-    id: 'start',
-    emoji: '\u{1F680}',
-    title: "Let's go",
-    body: "That's it.\n\nYour first idea is already in your head. Let's get it out, and start your journey.",
-    accent: colors.primary[400],
+    id: 'bob',
+    title: 'Meet Bob',
+    subtitle:
+      'Your AI side coach. He\u2019ll challenge weak ideas, break big goals into steps, and push you toward action.',
+    accent: colors.purple[400],
+    buttonGradient: gradients.purple,
+  },
+  {
+    id: 'track',
+    title: 'Pick your first track',
+    subtitle: 'What are you working on? You can always add more later.',
+    accent: colors.status.shipped,
+    buttonGradient: gradients.green,
   },
 ];
 
+// Per-slide dot accent colors
+const DOT_COLORS = [colors.primary[500], colors.purple[400], colors.status.shipped];
+
+// ── Mini UI Mockups ──────────────────────────────────────────
+
+function IdeasMockup() {
+  const mockIdeas = [
+    { title: 'Coffee shop business plan', status: 'Exploring it', color: colors.status.exploring },
+    { title: 'Learn React Native', status: 'Started building', color: colors.status.building },
+    { title: 'Freelance design portfolio', status: 'Just a spark', color: colors.status.spark },
+    { title: 'Switch to product management', status: 'Shipped!', color: colors.status.shipped },
+  ];
+
+  const filters = [
+    { label: '3 sparks', color: colors.status.spark },
+    { label: '2 active', color: colors.status.building },
+    { label: '1 shipped', color: colors.status.shipped },
+  ];
+
+  return (
+    <Animated.View entering={FadeInUp.delay(300).duration(500)} style={mockStyles.phoneFrame}>
+      <View style={mockStyles.phoneHeader}>
+        <Text style={mockStyles.phoneTitle}>Ideas</Text>
+      </View>
+      <View style={mockStyles.filterRow}>
+        {filters.map((f) => (
+          <View key={f.label} style={[mockStyles.filterPill, { backgroundColor: f.color + '20' }]}>
+            <Text
+              style={[mockStyles.filterText, { color: f.color, fontFamily: fontFamily.mono.bold }]}
+            >
+              {f.label}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {mockIdeas.map((idea, i) => (
+        <Animated.View
+          key={idea.title}
+          entering={FadeInDown.delay(450 + i * 100).duration(350)}
+          style={mockStyles.ideaCard}
+        >
+          <Text style={mockStyles.ideaTitle} numberOfLines={1}>
+            {idea.title}
+          </Text>
+          <View style={[mockStyles.statusPill, { backgroundColor: idea.color + '18' }]}>
+            <View style={[mockStyles.statusDot, { backgroundColor: idea.color }]} />
+            <Text style={[mockStyles.statusText, { color: idea.color }]}>{idea.status}</Text>
+          </View>
+        </Animated.View>
+      ))}
+    </Animated.View>
+  );
+}
+
+function BobMockup() {
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(300).duration(500)}
+      style={[mockStyles.phoneFrame, mockStyles.bobFrame]}
+    >
+      <View style={mockStyles.phoneHeader}>
+        <Text style={[mockStyles.phoneTitle, { color: colors.purple[400] }]}>Bob</Text>
+        <Text style={mockStyles.phoneSubtitle}>Your thinking partner</Text>
+      </View>
+      <Animated.View entering={FadeInDown.delay(500).duration(350)} style={mockStyles.userBubble}>
+        <Text style={mockStyles.bubbleText}>
+          I want to start a coffee shop but I have no experience
+        </Text>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(700).duration(350)} style={mockStyles.bobBubble}>
+        <Text style={mockStyles.bobLabel}>Bob</Text>
+        <Text style={mockStyles.bubbleText}>
+          Good — most great founders started with zero experience in their field. Let&apos;s break
+          this down. What specifically draws you to it?
+        </Text>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(900).duration(350)} style={mockStyles.taskAction}>
+        <View style={mockStyles.taskCheckbox}>
+          <Text style={mockStyles.taskCheckIcon}>{'\u2713'}</Text>
+        </View>
+        <Text style={mockStyles.taskActionText}>Task: Research local coffee shop costs</Text>
+      </Animated.View>
+      <Animated.View entering={FadeInDown.delay(1050).duration(350)} style={mockStyles.gestureHint}>
+        <Text style={mockStyles.gestureIcon}>{'\u2191'}</Text>
+        <Text style={mockStyles.gestureText}>Swipe up to save ideas from conversations</Text>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
+// Track accent colors for the picker cards
+const TRACK_ACCENTS: Record<TrackType, string> = {
+  side_project: colors.primary[400],
+  job_application: colors.status.exploring,
+  career_pivot: colors.blue[400],
+  course: colors.status.spark,
+  freelance: colors.status.shipped,
+  custom: colors.text.muted,
+};
+
+function TrackPicker({
+  selectedTrack,
+  onSelectTrack,
+}: {
+  selectedTrack: TrackType | null;
+  onSelectTrack: (track: TrackType) => void;
+}) {
+  return (
+    <Animated.View entering={FadeInUp.delay(300).duration(500)} style={mockStyles.trackContainer}>
+      {TRACK_TYPES.map((trackType, i) => {
+        const config = TRACK_CONFIG[trackType];
+        const accent = TRACK_ACCENTS[trackType];
+        const isSelected = selectedTrack === trackType;
+        return (
+          <Animated.View key={trackType} entering={FadeInDown.delay(400 + i * 80).duration(300)}>
+            <Pressable
+              style={[
+                mockStyles.trackCard,
+                isSelected && { borderColor: accent, backgroundColor: accent + '10' },
+              ]}
+              onPress={() => {
+                hapticLight();
+                onSelectTrack(trackType);
+              }}
+            >
+              <View style={[mockStyles.trackIconContainer, { backgroundColor: accent + '18' }]}>
+                <Text style={mockStyles.trackIcon}>{config.icon}</Text>
+              </View>
+              <View style={mockStyles.trackInfo}>
+                <Text style={[mockStyles.trackLabel, isSelected && { color: accent }]}>
+                  {config.label}
+                </Text>
+                <Text style={mockStyles.trackDesc}>{config.description}</Text>
+              </View>
+              {isSelected && (
+                <Animated.View
+                  entering={FadeIn.duration(200)}
+                  style={[mockStyles.trackCheck, { backgroundColor: accent }]}
+                >
+                  <Text style={mockStyles.trackCheckText}>{'\u2713'}</Text>
+                </Animated.View>
+              )}
+            </Pressable>
+          </Animated.View>
+        );
+      })}
+    </Animated.View>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────
+
 interface OnboardingScreenProps {
-  onComplete: () => void;
+  onComplete: (selectedTrack?: TrackType) => void;
 }
 
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedTrack, setSelectedTrack] = useState<TrackType | null>(null);
 
   const isLastSlide = currentIndex === SLIDES.length - 1;
+  const currentSlide = SLIDES[currentIndex];
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken<OnboardingSlide>[] }) => {
@@ -86,12 +222,12 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const handleNext = useCallback(() => {
     if (isLastSlide) {
       hapticSuccess();
-      onComplete();
+      onComplete(selectedTrack ?? undefined);
     } else {
       hapticLight();
       listRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     }
-  }, [currentIndex, isLastSlide, onComplete]);
+  }, [currentIndex, isLastSlide, onComplete, selectedTrack]);
 
   const handleSkip = useCallback(() => {
     onComplete();
@@ -101,28 +237,33 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     ({ item, index }: { item: OnboardingSlide; index: number }) => (
       <View style={styles.slide}>
         <Animated.View entering={FadeIn.delay(100)} style={styles.slideContent}>
-          <Text style={styles.emoji}>{item.emoji}</Text>
           <Animated.Text
-            entering={FadeInDown.delay(200).duration(400)}
-            style={[styles.title, item.accent !== undefined ? { color: item.accent } : undefined]}
+            entering={FadeInDown.delay(150).duration(400)}
+            style={[styles.title, { color: item.accent }]}
           >
             {item.title}
           </Animated.Text>
-          <Animated.Text entering={FadeInDown.delay(350).duration(400)} style={styles.body}>
-            {item.body}
+          <Animated.Text entering={FadeInDown.delay(250).duration(400)} style={styles.subtitle}>
+            {item.subtitle}
           </Animated.Text>
-          {index === 0 && (
-            <Animated.Text entering={FadeInDown.delay(500).duration(400)} style={styles.signature}>
-              — Adam
-            </Animated.Text>
-          )}
         </Animated.View>
+
+        {index === 0 && <IdeasMockup />}
+        {index === 1 && <BobMockup />}
+        {index === 2 && (
+          <TrackPicker selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} />
+        )}
       </View>
     ),
-    [],
+    [selectedTrack],
   );
 
   const keyExtractor = useCallback((item: OnboardingSlide) => item.id, []);
+
+  const canProceed = !isLastSlide || selectedTrack !== null;
+  const buttonGradient = canProceed
+    ? currentSlide.buttonGradient
+    : ([colors.border.medium, colors.border.medium] as const);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -147,6 +288,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         bounces={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        scrollEnabled
       />
 
       <View style={styles.footer}>
@@ -154,29 +296,38 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           {SLIDES.map((slide, i) => (
             <View
               key={slide.id}
-              style={[styles.dot, i === currentIndex ? styles.dotActive : styles.dotInactive]}
+              style={[
+                styles.dot,
+                i === currentIndex
+                  ? [styles.dotActive, { backgroundColor: DOT_COLORS[i] }]
+                  : styles.dotInactive,
+              ]}
             />
           ))}
         </View>
 
-        <Pressable onPress={handleNext} style={styles.nextButton}>
+        <Pressable
+          onPress={handleNext}
+          style={[styles.nextButton, !canProceed && styles.nextButtonDisabled]}
+          disabled={!canProceed}
+        >
           <LinearGradient
-            colors={
-              isLastSlide
-                ? [colors.primary[400], colors.primary[500]]
-                : [colors.coral[400], colors.primary[400]]
-            }
+            colors={buttonGradient as [string, string]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.nextButtonGradient}
           >
-            <Text style={styles.nextButtonText}>{isLastSlide ? "Let's go" : 'Next'}</Text>
+            <Text style={[styles.nextButtonText, !canProceed && styles.nextButtonTextDisabled]}>
+              {isLastSlide ? "Let's go" : 'Next'}
+            </Text>
           </LinearGradient>
         </Pressable>
       </View>
     </SafeAreaView>
   );
 }
+
+// ── Styles ───────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -192,40 +343,29 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: fontFamily.mono.regular,
     fontSize: 14,
-    color: colors.coral[400],
+    color: colors.text.muted,
   },
   slide: {
     width: SCREEN_WIDTH,
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing['3xl'],
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing['3xl'],
   },
   slideContent: {
     alignItems: 'flex-start',
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: spacing['2xl'],
+    marginBottom: spacing.xl,
   },
   title: {
     fontFamily: fontFamily.display.bold,
-    fontSize: 32,
-    lineHeight: 40,
-    color: colors.text.primary,
-    marginBottom: spacing.xl,
+    fontSize: 28,
+    lineHeight: 36,
+    marginBottom: spacing.sm,
   },
-  body: {
+  subtitle: {
     fontFamily: fontFamily.display.regular,
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 24,
     color: colors.text.secondary,
-  },
-  signature: {
-    fontFamily: fontFamily.display.italic,
-    fontSize: 18,
-    lineHeight: 28,
-    color: colors.primary[500],
-    marginTop: spacing.lg,
   },
   footer: {
     paddingHorizontal: spacing['2xl'],
@@ -243,7 +383,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotActive: {
-    backgroundColor: colors.primary[500],
     width: 24,
   },
   dotInactive: {
@@ -253,6 +392,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
   },
+  nextButtonDisabled: {
+    opacity: 0.6,
+  },
   nextButtonGradient: {
     paddingVertical: spacing.xl,
     alignItems: 'center',
@@ -261,6 +403,227 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontFamily: fontFamily.mono.bold,
     fontSize: 16,
+    color: colors.text.inverse,
+  },
+  nextButtonTextDisabled: {
+    color: colors.text.muted,
+  },
+});
+
+const mockStyles = StyleSheet.create({
+  // ── Phone frame (shared) ──────────────────────
+  phoneFrame: {
+    flex: 1,
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.md,
+  },
+  bobFrame: {
+    borderColor: colors.purple[200],
+  },
+  phoneHeader: {
+    marginBottom: spacing.md,
+  },
+  phoneTitle: {
+    fontFamily: fontFamily.display.bold,
+    fontSize: 22,
+    color: colors.primary[500],
+  },
+  phoneSubtitle: {
+    fontFamily: fontFamily.display.regular,
+    fontSize: 12,
+    color: colors.text.muted,
+    marginTop: 2,
+  },
+
+  // ── Ideas mockup ──────────────────────────────
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  filterPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+  },
+  filterText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 11,
+    color: colors.text.muted,
+  },
+  ideaCard: {
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.subtle,
+  },
+  ideaTitle: {
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    gap: 4,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 10,
+  },
+
+  // ── Bob mockup ────────────────────────────────
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.primary[50],
+    borderRadius: radius.lg,
+    borderBottomRightRadius: radius.sm,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    maxWidth: '80%',
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+  },
+  bobBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.purple[100],
+    borderRadius: radius.lg,
+    borderBottomLeftRadius: radius.sm,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    maxWidth: '85%',
+    borderWidth: 1,
+    borderColor: colors.purple[200],
+  },
+  bobLabel: {
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 11,
+    color: colors.purple[400],
+    marginBottom: 4,
+  },
+  bubbleText: {
+    fontFamily: fontFamily.display.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.text.warm,
+  },
+  taskAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.status.shipped + '12',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.status.shipped + '30',
+  },
+  taskCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: colors.status.shipped,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taskCheckIcon: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.text.inverse,
+  },
+  taskActionText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 12,
+    color: colors.status.shipped,
+    flex: 1,
+  },
+  gestureHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+    marginTop: 'auto',
+  },
+  gestureIcon: {
+    fontSize: 14,
+    color: colors.purple[400],
+  },
+  gestureText: {
+    fontFamily: fontFamily.mono.regular,
+    fontSize: 11,
+    color: colors.text.muted,
+  },
+
+  // ── Track picker ──────────────────────────────
+  trackContainer: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  trackCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bg.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border.subtle,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  trackIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackIcon: {
+    fontSize: 20,
+  },
+  trackInfo: {
+    flex: 1,
+  },
+  trackLabel: {
+    fontFamily: fontFamily.display.semiBold,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.text.primary,
+  },
+  trackDesc: {
+    fontFamily: fontFamily.display.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.text.muted,
+    marginTop: 1,
+  },
+  trackCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackCheckText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: colors.text.inverse,
   },
 });
